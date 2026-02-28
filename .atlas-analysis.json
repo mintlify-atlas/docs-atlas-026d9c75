@@ -1,0 +1,138 @@
+{
+  "projectType": "general",
+  "projectName": "React - The Complete Guide Course Resources",
+  "projectDescription": "Comprehensive code snapshots, attachments, and resources for learning React from fundamentals to advanced topics including Redux, NextJS, TypeScript, and testing.",
+  "theme": "palm",
+  "primaryColor": "#61DAFB",
+  "lightColor": "#149ECA",
+  "darkColor": "#087EA4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "repository-structure"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "core/getting-started",
+              "core/javascript-refresher",
+              "core/react-essentials",
+              "core/essentials-deep-dive",
+              "core/debugging"
+            ]
+          },
+          {
+            "group": "Styling & UI",
+            "pages": [
+              "ui/styling",
+              "ui/refs-portals",
+              "ui/animations"
+            ]
+          },
+          {
+            "group": "State Management",
+            "pages": [
+              "state/context-reducer",
+              "state/side-effects",
+              "state/behind-scenes",
+              "state/redux-basics",
+              "state/advanced-redux"
+            ]
+          },
+          {
+            "group": "Advanced Topics",
+            "pages": [
+              "advanced/custom-hooks",
+              "advanced/forms-input",
+              "advanced/form-actions",
+              "advanced/http-requests",
+              "advanced/class-components",
+              "advanced/patterns"
+            ]
+          },
+          {
+            "group": "NextJS",
+            "pages": [
+              "nextjs/introduction",
+              "nextjs/app-router",
+              "nextjs/server-components",
+              "nextjs/server-actions"
+            ]
+          },
+          {
+            "group": "Testing & TypeScript",
+            "pages": [
+              "testing/react-testing",
+              "typescript/react-typescript"
+            ]
+          },
+          {
+            "group": "Production",
+            "pages": [
+              "production/routing",
+              "production/authentication",
+              "production/deployment",
+              "production/react-query"
+            ]
+          },
+          {
+            "group": "Practice Projects",
+            "pages": [
+              "projects/overview",
+              "projects/project-management",
+              "projects/react-quiz",
+              "projects/food-order"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Code Snapshots",
+        "groups": [
+          {
+            "group": "Reference",
+            "pages": [
+              "snapshots/overview",
+              "snapshots/how-to-use",
+              "snapshots/section-index"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "34 comprehensive course sections covering React fundamentals to advanced topics",
+    "Step-by-step code snapshots showing incremental progress",
+    "Practice projects including project management, quiz app, and food ordering",
+    "Complete NextJS coverage with App Router and Server Components",
+    "Redux state management from basics to advanced patterns",
+    "TypeScript integration and React testing strategies",
+    "Authentication, routing, and deployment guides",
+    "Modern React patterns including hooks, context, and custom hooks"
+  ],
+  "publicApiSurface": [
+    "Code snapshots for 34 course sections",
+    "React fundamentals: components, props, state, events",
+    "Hooks: useState, useEffect, useReducer, useContext, custom hooks",
+    "Styling approaches: CSS modules, styled-components, Tailwind",
+    "State management: Context API, Redux, Redux Toolkit",
+    "React Router for navigation and routing",
+    "Form handling and validation patterns",
+    "HTTP requests with fetch and React Query",
+    "NextJS App Router and Pages Router",
+    "Server Components and Server Actions",
+    "Authentication flows and protected routes",
+    "Testing with React Testing Library",
+    "TypeScript with React components and hooks",
+    "Deployment strategies for production apps"
+  ]
+}
