@@ -1,0 +1,347 @@
+---
+title: 'Class-Based Components'
+description: 'Understand class components, lifecycle methods, and when they are still relevant'
+icon: 'code-simple'
+---
+
+## Class Components Overview
+
+While functional components with hooks are now the standard, understanding class components is valuable for maintaining legacy code and understanding React's evolution.
+
+<Warning>
+New projects should use functional components with hooks. Class components are primarily for legacy codebases.
+</Warning>
+
+## Creating a Class Component
+
+Class components extend `React.Component` and must have a `render()` method:
+
+```javascript
+import { Component } from 'react';
+
+class Users extends Component {
+  render() {
+    return (
+      <ul>
+        {this.props.users.map((user) => (
+          <li key={user.id}>{user.name}</li>
+        ))}
+      </ul>
+    );
+  }
+}
+
+export default Users;
+```
+
+## Working with State
+
+State is initialized in the constructor and updated with `setState()`:
+
+```javascript
+import { Component } from 'react';
+
+class UserFinder extends Component {
+  constructor() {
+    super();
+    this.state = {
+      filteredUsers: [],
+      searchTerm: '',
+    };
+  }
+
+  searchChangeHandler(event) {
+    this.setState({ searchTerm: event.target.value });
+  }
+
+  render() {
+    return (
+      <div>
+        <input
+          type="search"
+          onChange={this.searchChangeHandler.bind(this)}
+        />
+        <Users users={this.state.filteredUsers} />
+      </div>
+    );
+  }
+}
+```
+
+<Note>
+Use `.bind(this)` or arrow functions to ensure methods have access to the component instance.
+</Note>
+
+## Lifecycle Methods
+
+Class components have lifecycle methods for different phases of the component's existence:
+
+```javascript
+import { Component } from 'react';
+
+class UserFinder extends Component {
+  constructor() {
+    super();
+    this.state = {
+      filteredUsers: [],
+      searchTerm: '',
+    };
+  }
+
+  componentDidMount() {
+    // Runs after component is mounted (like useEffect with [])
+    // Perfect for HTTP requests, subscriptions
+    this.setState({ filteredUsers: DUMMY_USERS });
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    // Runs after component updates (like useEffect with dependencies)
+    if (prevState.searchTerm !== this.state.searchTerm) {
+      this.setState({
+        filteredUsers: DUMMY_USERS.filter((user) =>
+          user.name.includes(this.state.searchTerm)
+        ),
+      });
+    }
+  }
+
+  componentWillUnmount() {
+    // Runs before component is removed (cleanup)
+    // Perfect for clearing timers, canceling requests
+  }
+
+  searchChangeHandler(event) {
+    this.setState({ searchTerm: event.target.value });
+  }
+
+  render() {
+    return (
+      <div className="finder">
+        <input type="search" onChange={this.searchChangeHandler.bind(this)} />
+        <Users users={this.state.filteredUsers} />
+      </div>
+    );
+  }
+}
+```
+
+## Lifecycle Methods Explained
+
+<Steps>
+  <Step title="componentDidMount()">
+    Called once after the component is rendered for the first time. Use for:
+    - Fetching initial data
+    - Setting up subscriptions
+    - Starting timers
+    
+    **Functional equivalent**: `useEffect(() => { ... }, [])`
+  </Step>
+  
+  <Step title="componentDidUpdate(prevProps, prevState)">
+    Called after every update (except the initial render). Use for:
+    - Responding to prop or state changes
+    - Fetching data based on changes
+    - Updating DOM
+    
+    **Functional equivalent**: `useEffect(() => { ... }, [dependencies])`
+  </Step>
+  
+  <Step title="componentWillUnmount()">
+    Called right before the component is removed from the DOM. Use for:
+    - Cleanup subscriptions
+    - Clearing timers
+    - Canceling network requests
+    
+    **Functional equivalent**: Cleanup function in `useEffect`
+  </Step>
+</Steps>
+
+## Error Boundaries
+
+Error boundaries are a feature only available in class components (as of now):
+
+```javascript
+import { Component } from 'react';
+
+class ErrorBoundary extends Component {
+  constructor() {
+    super();
+    this.state = { hasError: false };
+  }
+
+  componentDidCatch(error) {
+    console.log(error);
+    this.setState({ hasError: true });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <p>Something went wrong!</p>;
+    }
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+```
+
+### Using Error Boundaries
+
+```jsx
+import ErrorBoundary from './components/ErrorBoundary';
+import Users from './components/Users';
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <Users />
+    </ErrorBoundary>
+  );
+}
+```
+
+<Tip>
+Error boundaries catch errors in child components during rendering, in lifecycle methods, and in constructors. They don't catch errors in event handlers.
+</Tip>
+
+## Class vs Functional Components
+
+<Tabs>
+  <Tab title="Class Component">
+    ```javascript
+    import { Component } from 'react';
+
+    class User extends Component {
+      constructor() {
+        super();
+        this.state = { showDetails: false };
+      }
+
+      toggleDetailsHandler = () => {
+        this.setState((prevState) => ({
+          showDetails: !prevState.showDetails
+        }));
+      }
+
+      render() {
+        return (
+          <li>
+            <h2>{this.props.name}</h2>
+            <button onClick={this.toggleDetailsHandler}>
+              Toggle Details
+            </button>
+            {this.state.showDetails && <p>User details...</p>}
+          </li>
+        );
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Functional Component">
+    ```javascript
+    import { useState } from 'react';
+
+    function User({ name }) {
+      const [showDetails, setShowDetails] = useState(false);
+
+      function toggleDetailsHandler() {
+        setShowDetails(prev => !prev);
+      }
+
+      return (
+        <li>
+          <h2>{name}</h2>
+          <button onClick={toggleDetailsHandler}>
+            Toggle Details
+          </button>
+          {showDetails && <p>User details...</p>}
+        </li>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Context in Class Components
+
+Access context using `this.context`:
+
+```javascript
+import { Component } from 'react';
+import UsersContext from '../store/users-context';
+
+class UserFinder extends Component {
+  static contextType = UsersContext;
+
+  componentDidMount() {
+    // Access context via this.context
+    this.setState({ filteredUsers: this.context.users });
+  }
+
+  render() {
+    return <div>...</div>;
+  }
+}
+```
+
+<Note>
+A class component can only consume one context. Use `Context.Consumer` for multiple contexts.
+</Note>
+
+## When to Use Class Components
+
+<CardGroup cols={2}>
+  <Card title="Error Boundaries" icon="shield-halved">
+    Currently, error boundaries must be class components. No hook equivalent exists yet.
+  </Card>
+  
+  <Card title="Legacy Code" icon="clock-rotate-left">
+    When working with existing codebases that use class components.
+  </Card>
+  
+  <Card title="Migration" icon="right-left">
+    Understanding classes helps when migrating old code to functional components.
+  </Card>
+  
+  <Card title="Learning React" icon="graduation-cap">
+    Understanding React's evolution and core concepts.
+  </Card>
+</CardGroup>
+
+## Lifecycle Comparison
+
+<AccordionGroup>
+  <Accordion title="Mounting Phase">
+    **Class**: `constructor()` → `render()` → `componentDidMount()`
+    
+    **Functional**: Component function executes → `useEffect` runs after render
+  </Accordion>
+  
+  <Accordion title="Updating Phase">
+    **Class**: `render()` → `componentDidUpdate(prevProps, prevState)`
+    
+    **Functional**: Component re-executes → `useEffect` runs if dependencies changed
+  </Accordion>
+  
+  <Accordion title="Unmounting Phase">
+    **Class**: `componentWillUnmount()`
+    
+    **Functional**: Cleanup function returned from `useEffect`
+  </Accordion>
+</AccordionGroup>
+
+## Key Differences
+
+| Feature | Class Components | Functional Components |
+|---------|-----------------|----------------------|
+| Syntax | ES6 classes | JavaScript functions |
+| State | `this.state` and `setState()` | `useState` hook |
+| Lifecycle | Lifecycle methods | `useEffect` hook |
+| Context | `this.context` or Consumer | `useContext` hook |
+| Performance | Slightly more overhead | Generally lighter |
+| Future | Legacy approach | Recommended approach |
+
+<Info>
+**Source Code**: Section 14 - Class-based Components
+</Info>

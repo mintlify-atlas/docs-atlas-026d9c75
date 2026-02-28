@@ -1,0 +1,187 @@
+---
+title: 'Custom Hooks'
+description: 'Learn how to create reusable custom hooks to extract and share component logic'
+icon: 'hook'
+---
+
+## What are Custom Hooks?
+
+Custom hooks allow you to extract component logic into reusable functions. They let you share stateful logic between components without changing your component hierarchy.
+
+<Note>
+Custom hooks must start with "use" and can call other hooks inside them.
+</Note>
+
+## Creating a Custom Hook
+
+Here's a real example from the course that creates a reusable `useFetch` hook for handling HTTP requests:
+
+<CodeGroup>
+```javascript useFetch.js
+import { useEffect, useState } from 'react';
+
+export function useFetch(fetchFn, initialValue) {
+  const [isFetching, setIsFetching] = useState();
+  const [error, setError] = useState();
+  const [fetchedData, setFetchedData] = useState(initialValue);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsFetching(true);
+      try {
+        const data = await fetchFn();
+        setFetchedData(data);
+      } catch (error) {
+        setError({ message: error.message || 'Failed to fetch data.' });
+      }
+
+      setIsFetching(false);
+    }
+
+    fetchData();
+  }, [fetchFn]);
+
+  return {
+    isFetching,
+    fetchedData,
+    error
+  }
+}
+```
+</CodeGroup>
+
+## Using Custom Hooks
+
+Once created, you can use your custom hook in any component:
+
+```jsx
+function AvailablePlaces({ onSelectPlace }) {
+  const {
+    isFetching,
+    fetchedData: availablePlaces,
+    error
+  } = useFetch(fetchPlaces, []);
+
+  if (error) {
+    return <Error title="An error occurred!" message={error.message} />;
+  }
+
+  return (
+    <Places
+      title="Available Places"
+      places={availablePlaces}
+      isLoading={isFetching}
+      loadingText="Fetching place data..."
+      fallbackText="No places available."
+      onSelectPlace={onSelectPlace}
+    />
+  );
+}
+```
+
+<Tip>
+The `useFetch` hook encapsulates all the loading, error, and data state management, making your components cleaner.
+</Tip>
+
+## Custom Input Hook Example
+
+Here's another practical example - a `useInput` hook for managing form inputs with validation:
+
+<CodeGroup>
+```javascript useInput.js
+import { useState } from 'react';
+
+export function useInput(defaultValue, validationFn) {
+  const [enteredValue, setEnteredValue] = useState(defaultValue);
+  const [didEdit, setDidEdit] = useState(false);
+
+  const valueIsValid = validationFn(enteredValue);
+
+  function handleInputChange(event) {
+    setEnteredValue(event.target.value);
+    setDidEdit(false);
+  }
+
+  function handleInputBlur() {
+    setDidEdit(true);
+  }
+
+  return {
+    value: enteredValue,
+    handleInputChange,
+    handleInputBlur,
+    hasError: didEdit && !valueIsValid
+  };
+}
+```
+
+```jsx Usage
+function Login() {
+  const {
+    value: emailValue,
+    handleInputChange: handleEmailChange,
+    handleInputBlur: handleEmailBlur,
+    hasError: emailHasError
+  } = useInput('', (value) => value.includes('@'));
+
+  return (
+    <div className="control">
+      <label htmlFor="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        name="email"
+        value={emailValue}
+        onChange={handleEmailChange}
+        onBlur={handleEmailBlur}
+      />
+      {emailHasError && <p className="error">Please enter a valid email.</p>}
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always start with 'use'">
+    Custom hook names must start with "use" so React can automatically check for violations of Hook rules.
+  </Accordion>
+  
+  <Accordion title="Share logic, not state">
+    Each call to a custom hook gets its own isolated state. The hook shares stateful logic, not the state itself.
+  </Accordion>
+  
+  <Accordion title="Return what components need">
+    Design your hooks to return the values and functions that components actually need to work with.
+  </Accordion>
+  
+  <Accordion title="Keep hooks focused">
+    Create hooks with a single, clear purpose. Complex logic can be split into multiple hooks.
+  </Accordion>
+</AccordionGroup>
+
+## Key Takeaways
+
+<CardGroup cols={2}>
+  <Card title="Reusability" icon="recycle">
+    Extract common logic into custom hooks to avoid code duplication across components
+  </Card>
+  
+  <Card title="Composition" icon="layer-group">
+    Custom hooks can use other hooks, including other custom hooks, for powerful compositions
+  </Card>
+  
+  <Card title="Encapsulation" icon="box">
+    Hide complex logic behind a simple interface that components can easily consume
+  </Card>
+  
+  <Card title="Testing" icon="vial">
+    Custom hooks can be tested independently, making your application more maintainable
+  </Card>
+</CardGroup>
+
+<Info>
+**Source Code**: Section 16 - Custom Hooks
+</Info>

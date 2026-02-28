@@ -1,0 +1,465 @@
+---
+title: 'Project Management App'
+description: 'Build a complete project and task management application using refs, portals, and advanced state management'
+icon: 'list-check'
+---
+
+## Project Overview
+
+The Project Management app is a practice project from Section 9 that demonstrates how to build a full-featured application for managing projects and their associated tasks. This project focuses on advanced React patterns including refs, portals, and complex state management.
+
+<Frame>
+  <img src="/images/project-management-preview.png" alt="Project Management App Interface" />
+</Frame>
+
+## Learning Objectives
+
+<CardGroup cols={2}>
+  <Card title="Refs & ForwardRef" icon="arrow-pointer">
+    Access DOM elements and manage component references
+  </Card>
+  <Card title="React Portals" icon="portal-enter">
+    Render modals outside the component hierarchy
+  </Card>
+  <Card title="State Management" icon="sitemap">
+    Handle complex application state patterns
+  </Card>
+  <Card title="Form Validation" icon="circle-check">
+    Validate user input with refs
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Project Management
+
+<AccordionGroup>
+  <Accordion title="Create New Projects">
+    Users can add new projects with title, description, and due date
+    
+    ```jsx
+    function handleAddProject(projectData) {
+      setProjectsState((prevState) => {
+        const projectId = Math.random();
+        const newProject = {
+          ...projectData,
+          id: projectId,
+        };
+
+        return {
+          ...prevState,
+          selectedProjectId: undefined,
+          projects: [...prevState.projects, newProject],
+        };
+      });
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Select and View Projects">
+    Click on a project in the sidebar to view its details and tasks
+    
+    ```jsx
+    function handleSelectProject(id) {
+      setProjectsState((prevState) => {
+        return {
+          ...prevState,
+          selectedProjectId: id,
+        };
+      });
+    }
+
+    const selectedProject = projectsState.projects.find(
+      (project) => project.id === projectsState.selectedProjectId
+    );
+    ```
+  </Accordion>
+
+  <Accordion title="Delete Projects">
+    Remove projects and their associated tasks from the application
+    
+    ```jsx
+    function handleDeleteProject() {
+      setProjectsState((prevState) => {
+        return {
+          ...prevState,
+          selectedProjectId: undefined,
+          projects: prevState.projects.filter(
+            (project) => project.id !== prevState.selectedProjectId
+          ),
+        };
+      });
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Task Management
+
+Each project can have multiple tasks that can be added and removed:
+
+```jsx Tasks.jsx
+import NewTask from './NewTask.jsx';
+
+export default function Tasks({ tasks, onAdd, onDelete }) {
+  return (
+    <section>
+      <h2 className="text-2xl font-bold text-stone-700 mb-4">Tasks</h2>
+      <NewTask onAdd={onAdd} />
+      {tasks.length === 0 && (
+        <p className="text-stone-800 my-4">
+          This project does not have any tasks yet.
+        </p>
+      )}
+      {tasks.length > 0 && (
+        <ul className="p-4 mt-8 rounded-md bg-stone-100">
+          {tasks.map((task) => (
+            <li key={task.id} className="flex justify-between my-4">
+              <span>{task.text}</span>
+              <button
+                className="text-stone-700 hover:text-red-500"
+                onClick={() => onDelete(task.id)}
+              >
+                Clear
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+```
+
+## Core Concepts
+
+### Using Refs for Form Handling
+
+The project uses refs to access form input values without controlled components:
+
+```jsx NewProject.jsx
+import { useRef } from 'react';
+import Input from './Input.jsx';
+import Modal from './Modal.jsx';
+
+export default function NewProject({ onAdd, onCancel }) {
+  const modal = useRef();
+  const title = useRef();
+  const description = useRef();
+  const dueDate = useRef();
+
+  function handleSave() {
+    const enteredTitle = title.current.value;
+    const enteredDescription = description.current.value;
+    const enteredDueDate = dueDate.current.value;
+
+    // Validation
+    if (
+      enteredTitle.trim() === '' ||
+      enteredDescription.trim() === '' ||
+      enteredDueDate.trim() === ''
+    ) {
+      modal.current.open();
+      return;
+    }
+
+    onAdd({
+      title: enteredTitle,
+      description: enteredDescription,
+      dueDate: enteredDueDate,
+    });
+  }
+
+  return (
+    <>
+      <Modal ref={modal} buttonCaption="Okay">
+        <h2 className="text-xl font-bold text-stone-700 my-4">Invalid Input</h2>
+        <p className="text-stone-600 mb-4">
+          Oops ... looks like you forgot to enter a value.
+        </p>
+      </Modal>
+      <div className="w-[35rem] mt-16">
+        {/* Form content */}
+        <Input type="text" ref={title} label="Title" />
+        <Input ref={description} label="Description" textarea />
+        <Input type="date" ref={dueDate} label="Due Date" />
+      </div>
+    </>
+  );
+}
+```
+
+<Warning>
+When using refs with custom components, you must forward the ref using `forwardRef`.
+</Warning>
+
+### Modal with Portals and useImperativeHandle
+
+The modal component demonstrates advanced patterns:
+
+```jsx Modal.jsx
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import Button from './Button.jsx';
+
+const Modal = forwardRef(function Modal({ children, buttonCaption }, ref) {
+  const dialog = useRef();
+
+  // Expose custom methods to parent components
+  useImperativeHandle(ref, () => {
+    return {
+      open() {
+        dialog.current.showModal();
+      },
+    };
+  });
+
+  // Render modal outside the component tree using portals
+  return createPortal(
+    <dialog
+      ref={dialog}
+      className="backdrop:bg-stone-900/90 p-4 rounded-md shadow-md"
+    >
+      {children}
+      <form method="dialog" className="mt-4 text-right">
+        <Button>{buttonCaption}</Button>
+      </form>
+    </dialog>,
+    document.getElementById('modal-root')
+  );
+});
+
+export default Modal;
+```
+
+<Info>
+**React Portals** allow you to render components outside their parent DOM hierarchy, perfect for modals and tooltips.
+</Info>
+
+### Application State Structure
+
+The entire application state is managed in a single object:
+
+```jsx App.jsx
+const [projectsState, setProjectsState] = useState({
+  selectedProjectId: undefined,  // undefined = no selection
+                                  // null = adding new project
+                                  // id = selected project
+  projects: [],                   // Array of project objects
+  tasks: [],                      // Array of all tasks
+});
+```
+
+<Tabs>
+  <Tab title="State Values">
+    - `selectedProjectId: undefined` - Show "no project selected" screen
+    - `selectedProjectId: null` - Show "add new project" form
+    - `selectedProjectId: <id>` - Show selected project details
+  </Tab>
+  <Tab title="Data Structure">
+    ```javascript
+    {
+      selectedProjectId: 1,
+      projects: [
+        { id: 1, title: 'Learning React', description: '...', dueDate: '2026-12-31' }
+      ],
+      tasks: [
+        { id: 1, text: 'Finish section 9', projectId: 1 }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Project Structure
+
+```bash
+09-practice-project-management/
+├── src/
+│   ├── components/
+│   │   ├── Button.jsx              # Reusable button component
+│   │   ├── Input.jsx               # Forwarded ref input component
+│   │   ├── Modal.jsx               # Portal-based modal dialog
+│   │   ├── NewProject.jsx          # Project creation form
+│   │   ├── NewTask.jsx             # Task input component
+│   │   ├── NoProjectSelected.jsx   # Empty state component
+│   │   ├── ProjectsSidebar.jsx     # Project list sidebar
+│   │   ├── SelectedProject.jsx     # Project details view
+│   │   └── Tasks.jsx               # Task list component
+│   ├── App.jsx                     # Main app with state management
+│   └── main.jsx                    # Entry point
+├── index.html                      # Includes modal-root div
+└── tailwind.config.js              # Tailwind CSS configuration
+```
+
+## Implementation Steps
+
+The project is built incrementally across multiple videos:
+
+<Steps>
+  <Step title="Setup and Sidebar">
+    Create the basic layout and style the projects sidebar
+  </Step>
+  
+  <Step title="Component Structure">
+    Build reusable Button and Input components with proper ref forwarding
+  </Step>
+  
+  <Step title="State Management">
+    Implement state logic to switch between different views
+  </Step>
+  
+  <Step title="Project Creation">
+    Handle form submission and add projects to state
+  </Step>
+  
+  <Step title="Validation Modal">
+    Add modal with portals for form validation feedback
+  </Step>
+  
+  <Step title="Project Selection">
+    Make projects selectable and display details
+  </Step>
+  
+  <Step title="Project Deletion">
+    Add ability to delete projects
+  </Step>
+  
+  <Step title="Task Management">
+    Implement task addition and deletion functionality
+  </Step>
+</Steps>
+
+## Key Patterns & Techniques
+
+### ForwardRef Pattern
+
+```jsx Input.jsx
+import { forwardRef } from 'react';
+
+const Input = forwardRef(function Input({ label, textarea, ...props }, ref) {
+  const classes = "w-full p-1 border-b-2 rounded-sm border-stone-300";
+  
+  return (
+    <p className="flex flex-col gap-1 my-4">
+      <label className="text-sm font-bold uppercase text-stone-500">
+        {label}
+      </label>
+      {textarea ? (
+        <textarea ref={ref} className={classes} {...props} />
+      ) : (
+        <input ref={ref} className={classes} {...props} />
+      )}
+    </p>
+  );
+});
+
+export default Input;
+```
+
+### Conditional Rendering
+
+```jsx
+let content = (
+  <SelectedProject
+    project={selectedProject}
+    onDelete={handleDeleteProject}
+    onAddTask={handleAddTask}
+    onDeleteTask={handleDeleteTask}
+    tasks={projectsState.tasks}
+  />
+);
+
+if (projectsState.selectedProjectId === null) {
+  content = (
+    <NewProject onAdd={handleAddProject} onCancel={handleCancelAddProject} />
+  );
+} else if (projectsState.selectedProjectId === undefined) {
+  content = <NoProjectSelected onStartAddProject={handleStartAddProject} />;
+}
+```
+
+## Styling with Tailwind CSS
+
+The project uses Tailwind CSS for styling:
+
+<CodeGroup>
+```jsx Button Component
+export default function Button({ children, ...props }) {
+  return (
+    <button
+      className="px-4 py-2 text-xs md:text-base rounded-md bg-stone-700 text-stone-400 hover:bg-stone-600 hover:text-stone-100"
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+```jsx Sidebar Styling
+<aside className="w-1/3 px-8 py-16 bg-stone-900 text-stone-50 md:w-72 rounded-r-xl">
+  {/* Sidebar content */}
+</aside>
+```
+</CodeGroup>
+
+## Common Challenges
+
+<AccordionGroup>
+  <Accordion title="Managing Complex State">
+    **Challenge:** Keeping projects and tasks synchronized
+    
+    **Solution:** Store all data in a single state object and update immutably:
+    ```jsx
+    setProjectsState((prevState) => {
+      return {
+        ...prevState,
+        tasks: [newTask, ...prevState.tasks],
+      };
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Ref Forwarding Issues">
+    **Challenge:** Refs not working with custom components
+    
+    **Solution:** Wrap components with `forwardRef` and pass the ref to the actual DOM element
+  </Accordion>
+
+  <Accordion title="Modal Rendering">
+    **Challenge:** Modal rendered in the wrong place in the DOM
+    
+    **Solution:** Use `createPortal` to render it to a specific DOM node:
+    ```jsx
+    return createPortal(
+      <dialog>{/* content */}</dialog>,
+      document.getElementById('modal-root')
+    );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Testing Your Implementation
+
+<Checklist>
+  - [ ] Can create new projects with all required fields
+  - [ ] Validation modal shows when fields are empty
+  - [ ] Can select projects from the sidebar
+  - [ ] Can delete projects
+  - [ ] Can add tasks to a project
+  - [ ] Can delete individual tasks
+  - [ ] Tasks are associated with correct projects
+  - [ ] UI updates correctly after all operations
+</Checklist>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="React Quiz Project" icon="arrow-right" href="/projects/react-quiz">
+    Learn useEffect and side effects
+  </Card>
+  <Card title="Advanced State" icon="book" href="/essentials/context-reducer">
+    Explore Context API and useReducer
+  </Card>
+</CardGroup>

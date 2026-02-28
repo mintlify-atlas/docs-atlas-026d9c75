@@ -1,0 +1,313 @@
+---
+title: Repository structure
+description: Understand how the React course resources are organized across 34 sections, including code snapshots, attachments, and additional materials
+---
+
+## Repository overview
+
+The course resources repository is organized into three main folders, each serving a specific purpose:
+
+```bash
+react-complete-guide-resources/
+├── code/              # Code snapshots for all 34 sections
+├── attachments/       # Lecture attachments and downloadables
+└── other/             # Slides and update guides
+```
+
+## Code snapshots
+
+The `code/` folder contains **34 section folders**, each corresponding to a course section. Every section includes multiple code snapshots that represent different stages of development.
+
+### What are code snapshots?
+
+Code snapshots are taken directly from the course recordings and reflect the exact code you see in the videos. They serve multiple purposes:
+
+- **Compare your code** - Check your work against the instructor's implementation
+- **Jump to any point** - Start from any stage without watching all previous lectures
+- **Debug issues** - Use working code as a reference when troubleshooting
+- **Explore concepts** - Run and modify the code to understand how it works
+
+### Snapshot naming convention
+
+Snapshots follow a numbered naming pattern that indicates their order:
+
+```bash
+code/03 React Essentials/
+├── 01-starting-project
+├── 02-creating-using-first-component
+├── 03-using-outputting-dynamic-values
+├── 04-html-attributes-dynamically-image-files
+├── 05-cmp-props
+└── ...
+```
+
+The numbers correspond to the lecture or concept being demonstrated.
+
+### All 34 course sections
+
+<AccordionGroup>
+  <Accordion title="Foundations (Sections 1-8)">
+    <ResponseField name="01 Getting Started">
+      - `edited-first-app` - Modified first React application
+      - `react-vs-vanilla-js-example` - Comparison between React and vanilla JavaScript
+    </ResponseField>
+    
+    <ResponseField name="02 JS Refresher">
+      - `code` - Modern JavaScript syntax and features used in React
+    </ResponseField>
+    
+    <ResponseField name="03 React Essentials">
+      Multiple snapshots covering:
+      - Creating and using components
+      - Props and dynamic values
+      - Styling components
+      - Event handling
+      - State management basics
+    </ResponseField>
+    
+    <ResponseField name="04 Essentials Deep Dive">
+      Advanced component patterns and state management techniques
+    </ResponseField>
+    
+    <ResponseField name="05 Essentials Practice">
+      Hands-on practice project applying fundamental concepts
+    </ResponseField>
+    
+    <ResponseField name="06 Debugging">
+      Tools and techniques for debugging React applications
+    </ResponseField>
+    
+    <ResponseField name="07 Styling">
+      Various styling approaches including CSS modules, styled-components, and Tailwind
+    </ResponseField>
+    
+    <ResponseField name="08 Refs Portals">
+      Working with refs and React portals for advanced DOM manipulation
+    </ResponseField>
+  </Accordion>
+  
+  <Accordion title="Intermediate concepts (Sections 9-14)">
+    <ResponseField name="09 Practice Project - Project Management">
+      Complete project management application with:
+      - Project creation and management
+      - Task tracking
+      - Tailwind CSS styling
+    </ResponseField>
+    
+    <ResponseField name="10 Advanced State Management with Context useReducer">
+      Complex state management patterns using Context API and useReducer hook
+    </ResponseField>
+    
+    <ResponseField name="11 Side Effects useEffect">
+      Managing side effects, subscriptions, and data synchronization
+    </ResponseField>
+    
+    <ResponseField name="12 Behind the Scenes">
+      React's rendering behavior, optimization, and performance
+    </ResponseField>
+    
+    <ResponseField name="13 Demo Project - React Quiz">
+      Interactive quiz application demonstrating state and effects
+    </ResponseField>
+    
+    <ResponseField name="14 Class-based Components">
+      Working with class components and lifecycle methods
+    </ResponseField>
+  </Accordion>
+  
+  <Accordion title="Advanced features (Sections 15-18)">
+    <ResponseField name="15 HTTP Requests">
+      Fetching and sending data with APIs
+    </ResponseField>
+    
+    <ResponseField name="16 Custom Hooks">
+      Creating reusable custom hooks for shared logic
+    </ResponseField>
+    
+    <ResponseField name="17 Forms User Input">
+      Form handling, validation, and user input management
+    </ResponseField>
+    
+    <ResponseField name="17b Form Actions">
+      Modern form actions and server interactions
+    </ResponseField>
+    
+    <ResponseField name="18 Practice Project - Food Order">
+      Full-featured food ordering application with cart, checkout, and backend integration
+    </ResponseField>
+  </Accordion>
+  
+  <Accordion title="Ecosystem & production (Sections 19-30)">
+    <ResponseField name="19 Redux Basics">
+      Introduction to Redux for state management
+    </ResponseField>
+    
+    <ResponseField name="20 Advanced Redux">
+      Redux Toolkit, thunks, and advanced patterns
+    </ResponseField>
+    
+    <ResponseField name="21 Routing">
+      React Router for single-page application navigation
+    </ResponseField>
+    
+    <ResponseField name="22 Authentication">
+      User authentication and protected routes
+    </ResponseField>
+    
+    <ResponseField name="23 Deployment">
+      Deploying React applications to production
+    </ResponseField>
+    
+    <ResponseField name="24 React Query">
+      Server state management with TanStack Query
+    </ResponseField>
+    
+    <ResponseField name="25 NextJS App Router Introduction / 25 NextJS Introduction">
+      Next.js fundamentals and App Router
+    </ResponseField>
+    
+    <ResponseField name="25b RSC, Suspense, Server Actions">
+      React Server Components, Suspense, and Server Actions
+    </ResponseField>
+    
+    <ResponseField name="26 Animations">
+      Adding animations to React applications
+    </ResponseField>
+    
+    <ResponseField name="27 Patterns / 27 Replacing Redux with Hooks">
+      Design patterns and state management alternatives
+    </ResponseField>
+    
+    <ResponseField name="28 Testing">
+      Testing React components and applications
+    </ResponseField>
+    
+    <ResponseField name="29 React TypeScript">
+      Using TypeScript with React for type safety
+    </ResponseField>
+    
+    <ResponseField name="30 React Summary">
+      Course wrap-up and best practices
+    </ResponseField>
+  </Accordion>
+</AccordionGroup>
+
+## Lecture attachments
+
+The `attachments/` folder contains standalone files mentioned in specific course lectures. Each section folder includes:
+
+<CardGroup cols={3}>
+  <Card title="Starting projects" icon="file-zipper">
+    ZIP files with initial project setups
+  </Card>
+  <Card title="Code files" icon="file-code">
+    JavaScript/JSX files with data, utilities, or examples
+  </Card>
+  <Card title="Reference docs" icon="file-pdf">
+    PDF summaries and reference materials
+  </Card>
+</CardGroup>
+
+### Example attachments
+
+```bash
+attachments/03 React Essentials/
+├── 01-starting-project.zip    # Initial project setup
+├── App.jsx                     # Sample component file
+├── data-with-examples.js       # Example data structures
+└── data.js                     # Data for exercises
+```
+
+### Using attachments
+
+<Steps>
+  <Step title="Find the attachment">
+    Navigate to the section folder corresponding to your current lecture.
+  </Step>
+  
+  <Step title="Download the file">
+    Download the specific attachment mentioned in the video.
+  </Step>
+  
+  <Step title="Extract if needed">
+    For ZIP files, extract the contents to your working directory.
+  </Step>
+  
+  <Step title="Follow lecture instructions">
+    Use the files as instructed in the course video.
+  </Step>
+</Steps>
+
+## Other resources
+
+The `other/` folder contains supplementary course materials:
+
+<ResponseField name="react-course-slides.pdf">
+  Complete course slides covering all major topics and concepts
+</ResponseField>
+
+<ResponseField name="update-guide-slides.pdf">
+  Information about course updates and changes
+</ResponseField>
+
+<ResponseField name="course-update-guide-udemy.md">
+  Detailed update guide for Udemy students
+</ResponseField>
+
+<ResponseField name="course-update-guide-academind-pro.md">
+  Detailed update guide for Academind Pro members
+</ResponseField>
+
+## Finding what you need
+
+<Tabs>
+  <Tab title="By section number">
+    If you know the section number, navigate directly to that folder:
+    
+    ```bash
+    code/03 React Essentials/
+    ```
+  </Tab>
+  
+  <Tab title="By topic">
+    Look for sections with descriptive names:
+    
+    - **State management** → Sections 10, 19, 20
+    - **Practice projects** → Sections 9, 13, 18
+    - **Next.js** → Sections 25, 25b
+    - **Forms** → Sections 17, 17b
+  </Tab>
+  
+  <Tab title="By project type">
+    Three major practice projects:
+    
+    - **Section 9** - Project Management App
+    - **Section 13** - React Quiz
+    - **Section 18** - Food Order App
+  </Tab>
+</Tabs>
+
+<Note>
+  Each section is self-contained with its own dependencies. Remember to run `npm install` in each snapshot folder before running the code.
+</Note>
+
+## Best practices for using the repository
+
+<CardGroup cols={2}>
+  <Card title="Follow along" icon="play">
+    Use snapshots to verify your code matches the instructor's at key points
+  </Card>
+  <Card title="Experiment freely" icon="flask">
+    Make changes to snapshots to test your understanding without affecting your main code
+  </Card>
+  <Card title="Jump around" icon="shuffle">
+    Use starting snapshots to begin from any section without completing previous ones
+  </Card>
+  <Card title="Reference later" icon="bookmark">
+    Return to finished snapshots as examples when building your own projects
+  </Card>
+</CardGroup>
+
+## Next steps
+
+Ready to start using the resources? Head to the [quick start guide](/quickstart) to learn how to run code snapshots on your local machine.

@@ -1,0 +1,363 @@
+---
+title: Testing React Components
+description: Learn how to test React components using React Testing Library and Jest
+---
+
+## Overview
+
+Testing ensures your React components work correctly and helps prevent bugs. This section covers testing React components using **React Testing Library** and **Jest**.
+
+<Info>
+React Testing Library encourages testing components from a user's perspective, focusing on behavior rather than implementation details.
+</Info>
+
+## Setting Up Tests
+
+### Test Structure
+
+Tests follow the **Arrange-Act-Assert** pattern:
+
+1. **Arrange**: Set up the component
+2. **Act**: Perform actions (if needed)
+3. **Assert**: Verify the expected outcome
+
+## Writing Your First Test
+
+<CodeGroup>
+
+```jsx Component
+const Greeting = () => {
+  return (
+    <div>
+      <h2>Hello World!</h2>
+      <p>It's good to see you!</p>
+    </div>
+  );
+};
+
+export default Greeting;
+```
+
+```javascript Test
+import { render, screen } from '@testing-library/react';
+import Greeting from './Greeting';
+
+test('renders Hello World as a text', () => {
+  // Arrange
+  render(<Greeting />);
+
+  // Act
+  // ... nothing
+
+  // Assert
+  const helloWorldElement = screen.getByText('Hello World!');
+  expect(helloWorldElement).toBeInTheDocument();
+});
+```
+
+</CodeGroup>
+
+<Steps>
+
+<Step title="Render the component">
+Use `render()` from React Testing Library to render your component in a test environment.
+</Step>
+
+<Step title="Query for elements">
+Use `screen.getByText()`, `screen.getByRole()`, or other query methods to find elements.
+</Step>
+
+<Step title="Assert expectations">
+Use Jest matchers like `toBeInTheDocument()` to verify the component behaves correctly.
+</Step>
+
+</Steps>
+
+## Organizing Tests with Test Suites
+
+Group related tests using `describe()` blocks:
+
+```javascript
+import { render, screen } from '@testing-library/react';
+import Greeting from './Greeting';
+
+describe('Greeting component', () => {
+  test('renders "Hello World" as a text', () => {
+    render(<Greeting />);
+    const helloWorldElement = screen.getByText('Hello World!');
+    expect(helloWorldElement).toBeInTheDocument();
+  });
+
+  test('renders "good to see" you if the button was NOT clicked', () => {
+    render(<Greeting />);
+    const outputElement = screen.getByText('good to see you', { exact: false });
+    expect(outputElement).toBeInTheDocument();
+  });
+});
+```
+
+<Tip>
+Use `describe()` blocks to organize tests by component or feature, making test output more readable.
+</Tip>
+
+## Testing User Interactions
+
+Test user interactions using `@testing-library/user-event`:
+
+```javascript
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import Greeting from './Greeting';
+
+test('renders "Changed!" if the button was clicked', async () => {
+  // Arrange
+  render(<Greeting />);
+
+  // Act
+  const buttonElement = screen.getByRole('button');
+  await userEvent.click(buttonElement);
+
+  // Assert
+  const outputElement = screen.getByText('Changed!');
+  expect(outputElement).toBeInTheDocument();
+});
+
+test('does not render "good to see you" if the button was clicked', async () => {
+  render(<Greeting />);
+  
+  const buttonElement = screen.getByRole('button');
+  await userEvent.click(buttonElement);
+
+  // Use queryByText when element shouldn't exist
+  const outputElement = screen.queryByText('good to see you', { exact: false });
+  expect(outputElement).toBeNull();
+});
+```
+
+<CardGroup cols={2}>
+
+<Card title="getByText" icon="magnifying-glass">
+Throws an error if element is not found. Use when element must exist.
+</Card>
+
+<Card title="queryByText" icon="circle-question">
+Returns `null` if element is not found. Use when testing element absence.
+</Card>
+
+</CardGroup>
+
+## Testing Asynchronous Code
+
+Test components that fetch data using `findBy` queries:
+
+<CodeGroup>
+
+```jsx Component
+import { useEffect, useState } from 'react';
+
+const Async = () => {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    fetch('https://jsonplaceholder.typicode.com/posts')
+      .then((response) => response.json())
+      .then((data) => {
+        setPosts(data);
+      });
+  }, []);
+
+  return (
+    <div>
+      <ul>
+        {posts.map((post) => (
+          <li key={post.id}>{post.title}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default Async;
+```
+
+```javascript Test
+import { render, screen } from '@testing-library/react';
+import Async from './Async';
+
+describe('Async component', () => {
+  test('renders posts if request succeeds', async () => {
+    render(<Async />)
+
+    // findAllByRole waits for elements to appear
+    const listItemElements = await screen.findAllByRole('listitem');
+    expect(listItemElements).not.toHaveLength(0);
+  });
+});
+```
+
+</CodeGroup>
+
+<Warning>
+Use `findBy` queries (not `getBy`) when testing async operations. They return a Promise and wait for elements to appear.
+</Warning>
+
+## Working with Mocks
+
+Mock external dependencies to avoid real API calls:
+
+```javascript
+import { render, screen } from '@testing-library/react';
+import Async from './Async';
+
+describe('Async component', () => {
+  test('renders posts if request succeeds', async () => {
+    // Mock the fetch function
+    window.fetch = jest.fn();
+    window.fetch.mockResolvedValueOnce({
+      json: async () => [{ id: 'p1', title: 'First post' }],
+    });
+    
+    render(<Async />);
+
+    const listItemElements = await screen.findAllByRole('listitem');
+    expect(listItemElements).not.toHaveLength(0);
+  });
+});
+```
+
+<AccordionGroup>
+
+<Accordion title="Why mock fetch?">
+Mocking prevents real network requests during tests, making tests:
+- Faster and more reliable
+- Independent of external services
+- Deterministic with controlled data
+</Accordion>
+
+<Accordion title="Common mocking patterns">
+- Mock API calls with `jest.fn()`
+- Mock resolved promises with `mockResolvedValueOnce()`
+- Mock rejected promises with `mockRejectedValueOnce()`
+- Mock modules with `jest.mock()`
+</Accordion>
+
+</AccordionGroup>
+
+## Query Methods
+
+<CardGroup cols={3}>
+
+<Card title="getBy" icon="1">
+**Synchronous**
+
+Throws error if not found. Use for elements that should exist immediately.
+</Card>
+
+<Card title="queryBy" icon="2">
+**Synchronous**
+
+Returns `null` if not found. Use to test element absence.
+</Card>
+
+<Card title="findBy" icon="3">
+**Asynchronous**
+
+Waits and returns Promise. Use for async elements.
+</Card>
+
+</CardGroup>
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Test user behavior, not implementation">
+Focus on what users see and do, not internal component details.
+
+```javascript
+// Good: Test user-visible behavior
+const button = screen.getByRole('button', { name: /add todo/i });
+
+// Bad: Test implementation details
+expect(wrapper.state().todos).toHaveLength(1);
+```
+</Accordion>
+
+<Accordion title="Use semantic queries">
+Prefer queries that reflect how users interact with your app.
+
+```javascript
+// Best: By role (most accessible)
+screen.getByRole('button', { name: /submit/i });
+
+// Good: By label text
+screen.getByLabelText(/username/i);
+
+// Okay: By text
+screen.getByText(/hello world/i);
+
+// Last resort: By test ID
+screen.getByTestId('submit-button');
+```
+</Accordion>
+
+<Accordion title="Keep tests isolated">
+Each test should be independent and not rely on other tests.
+
+```javascript
+describe('TodoList', () => {
+  test('adds a new todo', () => {
+    // Setup and test in isolation
+  });
+  
+  test('removes a todo', () => {
+    // Don't depend on previous test
+  });
+});
+```
+</Accordion>
+
+</AccordionGroup>
+
+## Running Tests
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    # Run all tests
+    npm test
+    
+    # Run tests in watch mode
+    npm test -- --watch
+    
+    # Run with coverage
+    npm test -- --coverage
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    # Run all tests
+    yarn test
+    
+    # Run tests in watch mode
+    yarn test --watch
+    
+    # Run with coverage
+    yarn test --coverage
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="TypeScript" icon="code" href="/typescript/react-typescript">
+Learn how to use TypeScript with React for type safety
+</Card>
+
+<Card title="Advanced Patterns" icon="rocket">
+Explore advanced testing patterns and custom hooks testing
+</Card>
+
+</CardGroup>

@@ -1,0 +1,437 @@
+---
+title: 'Deploying React Apps'
+description: 'Deploy React applications to production with Firebase Hosting, build optimization, and configuration best practices'
+icon: 'rocket'
+---
+
+## Overview
+
+Deploying a React application involves building an optimized production bundle and hosting it on a static file server or CDN.
+
+<Info>
+This guide covers deployment using Firebase Hosting, but the build concepts apply to any hosting platform.
+</Info>
+
+## Production Build
+
+Create an optimized production build of your React application:
+
+```bash
+npm run build
+```
+
+<Note>
+The build command uses Create React App's build script which:
+- Minifies JavaScript and CSS
+- Optimizes images and assets
+- Creates a production-ready bundle in the `build` directory
+- Generates source maps for debugging
+</Note>
+
+## Build Configuration
+
+Your `package.json` contains the build scripts:
+
+```json
+{
+  "name": "react-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^6.4.1",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  }
+}
+```
+
+<Tip>
+The `build` script creates a production-optimized version of your app with code splitting, minification, and optimization enabled.
+</Tip>
+
+## Firebase Hosting Setup
+
+### Install Firebase CLI
+
+Install the Firebase command-line tools globally:
+
+```bash
+npm install -g firebase-tools
+```
+
+### Login to Firebase
+
+Authenticate with your Google account:
+
+```bash
+firebase login
+```
+
+### Initialize Firebase Project
+
+Initialize Firebase in your project directory:
+
+```bash
+firebase init
+```
+
+<Steps>
+<Step title="Select Hosting">
+Choose "Hosting: Configure files for Firebase Hosting" from the features list.
+</Step>
+
+<Step title="Select Project">
+Select an existing Firebase project or create a new one.
+</Step>
+
+<Step title="Configure Settings">
+- Set public directory to `build`
+- Configure as single-page app: Yes
+- Set up automatic builds with GitHub: Optional
+</Step>
+</Steps>
+
+## Firebase Configuration Files
+
+### firebase.json
+
+Configure Firebase Hosting behavior:
+
+```json
+{
+  "hosting": {
+    "public": "build",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
+```
+
+<AccordionGroup>
+<Accordion title="Configuration Options" icon="gear">
+- `public`: Directory to deploy (the build output folder)
+- `ignore`: Files to exclude from deployment
+- `rewrites`: Redirect all requests to index.html for client-side routing
+</Accordion>
+
+<Accordion title="Why Rewrites?" icon="question">
+The rewrite rule ensures all routes are handled by your React app, not the server. This is essential for React Router to work correctly in production.
+</Accordion>
+</AccordionGroup>
+
+### .firebaserc
+
+Store your Firebase project configuration:
+
+```json
+{
+  "projects": {
+    "default": "<your-firebase-project-id>"
+  }
+}
+```
+
+<Warning>
+Replace `<your-firebase-project-id>` with your actual Firebase project ID from the Firebase Console.
+</Warning>
+
+## Deployment Process
+
+### Build and Deploy
+
+<Steps>
+<Step title="Build Production Bundle">
+```bash
+npm run build
+```
+This creates the optimized production files in the `build` directory.
+</Step>
+
+<Step title="Deploy to Firebase">
+```bash
+firebase deploy
+```
+Uploads your build directory to Firebase Hosting.
+</Step>
+
+<Step title="View Your Site">
+Firebase provides a hosting URL:
+```
+https://your-project-id.web.app
+```
+</Step>
+</Steps>
+
+## Environment Variables
+
+Manage environment-specific configuration:
+
+<CodeGroup>
+```bash .env.development
+REACT_APP_API_URL=http://localhost:8080
+REACT_APP_ENV=development
+```
+
+```bash .env.production
+REACT_APP_API_URL=https://api.yourapp.com
+REACT_APP_ENV=production
+```
+</CodeGroup>
+
+<Info>
+Create React App requires environment variables to be prefixed with `REACT_APP_` to be accessible in your code.
+</Info>
+
+### Using Environment Variables
+
+```javascript
+const API_URL = process.env.REACT_APP_API_URL;
+
+export async function fetchEvents() {
+  const response = await fetch(`${API_URL}/events`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch events');
+  }
+  
+  return response.json();
+}
+```
+
+<Warning>
+Never commit `.env.production` files containing sensitive keys to version control. Use Firebase environment configuration or CI/CD secrets instead.
+</Warning>
+
+## Custom Domain Setup
+
+Connect a custom domain to your Firebase hosting:
+
+```bash
+firebase hosting:channel:deploy production
+```
+
+<Steps>
+<Step title="Add Custom Domain">
+Go to Firebase Console > Hosting > Add custom domain
+</Step>
+
+<Step title="Verify Ownership">
+Add the provided TXT record to your domain's DNS settings
+</Step>
+
+<Step title="Configure DNS">
+Add the A records provided by Firebase to point your domain to Firebase Hosting
+</Step>
+
+<Step title="SSL Certificate">
+Firebase automatically provisions SSL certificates for HTTPS
+</Step>
+</Steps>
+
+## Other Hosting Options
+
+<CardGroup cols={2}>
+<Card title="Vercel" icon="triangle">
+```bash
+npm i -g vercel
+vercel
+```
+Automatic deployments from Git with zero configuration.
+</Card>
+
+<Card title="Netlify" icon="diamond">
+```bash
+npm install -g netlify-cli
+netlify deploy
+```
+Continuous deployment with Git integration.
+</Card>
+
+<Card title="AWS S3 + CloudFront" icon="aws">
+```bash
+aws s3 sync build/ s3://bucket-name
+```
+Scalable hosting with AWS infrastructure.
+</Card>
+
+<Card title="GitHub Pages" icon="github">
+```bash
+npm install gh-pages
+npm run deploy
+```
+Free hosting for open-source projects.
+</Card>
+</CardGroup>
+
+## Build Optimization
+
+<AccordionGroup>
+<Accordion title="Code Splitting" icon="scissors">
+React automatically splits your code using dynamic imports:
+
+```javascript
+import { lazy, Suspense } from 'react';
+
+const EventsPage = lazy(() => import('./pages/Events'));
+
+function App() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <EventsPage />
+    </Suspense>
+  );
+}
+```
+</Accordion>
+
+<Accordion title="Asset Optimization" icon="image">
+Optimize images before building:
+- Use WebP format for images
+- Compress images with tools like ImageOptim
+- Lazy load images below the fold
+</Accordion>
+
+<Accordion title="Bundle Analysis" icon="chart-line">
+Analyze your bundle size:
+
+```bash
+npm install --save-dev webpack-bundle-analyzer
+```
+
+```json
+"scripts": {
+  "analyze": "source-map-explorer 'build/static/js/*.js'"
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Performance Best Practices
+
+<Steps>
+<Step title="Enable Compression">
+Ensure your hosting platform serves gzipped or brotli-compressed files.
+</Step>
+
+<Step title="Configure Caching">
+Set appropriate cache headers for static assets:
+```json
+"headers": [
+  {
+    "source": "/static/**",
+    "headers": [
+      {
+        "key": "Cache-Control",
+        "value": "public, max-age=31536000, immutable"
+      }
+    ]
+  }
+]
+```
+</Step>
+
+<Step title="Use CDN">
+Host assets on a CDN for faster global delivery.
+</Step>
+</Steps>
+
+## CI/CD Integration
+
+Automate deployments with GitHub Actions:
+
+```yaml
+name: Deploy to Firebase
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: your-project-id
+```
+
+## Monitoring and Analytics
+
+<CardGroup cols={2}>
+<Card title="Performance Monitoring" icon="gauge">
+Add Firebase Performance Monitoring:
+```javascript
+import { getPerformance } from 'firebase/performance';
+const perf = getPerformance(app);
+```
+</Card>
+
+<Card title="Error Tracking" icon="bug">
+Integrate error tracking:
+```bash
+npm install @sentry/react
+```
+</Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="404 Errors on Refresh" icon="triangle-exclamation">
+Ensure your hosting platform redirects all routes to `index.html`. Check the rewrites configuration in `firebase.json`.
+</Accordion>
+
+<Accordion title="Environment Variables Not Working" icon="circle-xmark">
+- Verify variables are prefixed with `REACT_APP_`
+- Rebuild after changing environment variables
+- Check that `.env` files are in the project root
+</Accordion>
+
+<Accordion title="Large Bundle Size" icon="box">
+- Analyze bundle with webpack-bundle-analyzer
+- Implement code splitting
+- Remove unused dependencies
+- Use tree-shaking effectively
+</Accordion>
+</AccordionGroup>
+
+## Related Topics
+
+<CardGroup cols={2}>
+<Card title="Routing" icon="route" href="/production/routing">
+Ensure client-side routing works in production
+</Card>
+
+<Card title="Authentication" icon="shield" href="/production/authentication">
+Secure your deployed application
+</Card>
+</CardGroup>

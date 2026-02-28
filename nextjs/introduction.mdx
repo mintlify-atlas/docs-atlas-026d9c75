@@ -1,0 +1,253 @@
+---
+title: 'NextJS Introduction'
+description: 'Getting started with NextJS - The React framework for production'
+---
+
+## What is NextJS?
+
+NextJS is a React framework for building full-stack web applications. It provides additional structure, features, and optimizations for your React applications, including:
+
+- **File-based routing** - No need to configure routes manually
+- **Server-side rendering (SSR)** - Pre-render pages on the server
+- **Static site generation (SSG)** - Generate static HTML at build time
+- **API routes** - Build your backend API within the same project
+- **Automatic code splitting** - Better performance out of the box
+
+<Note>
+This course covers both the traditional Pages Router (section 25) and the modern App Router (section 25+), giving you a complete understanding of NextJS development.
+</Note>
+
+## Project Setup
+
+Create a new NextJS project:
+
+```bash
+npx create-next-app@latest
+```
+
+### Package Configuration
+
+Here's a typical NextJS project setup:
+
+```json package.json
+{
+  "name": "nextjs-course",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^13.4.19",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="dev" icon="code">
+    Runs development server with hot reloading
+  </Card>
+  <Card title="build" icon="hammer">
+    Creates optimized production build
+  </Card>
+  <Card title="start" icon="rocket">
+    Runs production server
+  </Card>
+  <Card title="export" icon="file-export">
+    Exports static HTML files
+  </Card>
+</CardGroup>
+
+## Pages Router Fundamentals
+
+The traditional NextJS routing system uses a `pages/` directory where each file automatically becomes a route.
+
+### Creating Your First Page
+
+```jsx pages/news.js
+// our-domain.com/news
+
+function NewsPage() {
+  return <h1>The News Page</h1>
+}
+
+export default NewsPage;
+```
+
+<Info>
+File names in the `pages/` directory directly correspond to URL paths. `pages/news.js` → `/news`
+</Info>
+
+### Dynamic Routes
+
+Create dynamic routes using square brackets `[param]` in file names:
+
+```jsx pages/news/[newsId].js
+// our-domain.com/news/something-important
+
+function DetailPage() {
+  return <h1>The Detail Page</h1>
+}
+
+export default DetailPage;
+```
+
+## Data Fetching Methods
+
+NextJS provides several methods for fetching data at different stages of the rendering process.
+
+### Static Site Generation (SSG)
+
+Use `getStaticProps` to fetch data at build time:
+
+```jsx pages/index.js
+import MeetupList from '../components/meetups/MeetupList';
+
+const DUMMY_MEETUPS = [
+  {
+    id: 'm1',
+    title: 'A First Meetup',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Stadtbild_M%C3%BCnchen.jpg/1280px-Stadtbild_M%C3%BCnchen.jpg',
+    address: 'Some address 5, 12345 Some City',
+    description: 'This is a first meetup!',
+  },
+  {
+    id: 'm2',
+    title: 'A Second Meetup',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Stadtbild_M%C3%BCnchen.jpg/1280px-Stadtbild_M%C3%BCnchen.jpg',
+    address: 'Some address 10, 12345 Some City',
+    description: 'This is a second meetup!',
+  },
+];
+
+function HomePage(props) {
+  return <MeetupList meetups={props.meetups} />;
+}
+
+export async function getStaticProps() {
+  // fetch data from an API
+  return {
+    props: {
+      meetups: DUMMY_MEETUPS
+    }
+  }; 
+}
+
+export default HomePage;
+```
+
+<Accordion title="When to use getStaticProps">
+- Data doesn't change frequently
+- Content can be pre-rendered at build time
+- SEO is important
+- Page must be fast (pre-rendered HTML)
+</Accordion>
+
+### Incremental Static Regeneration (ISR)
+
+Add `revalidate` to regenerate pages in the background:
+
+```jsx pages/index.js
+export async function getStaticProps() {
+  // fetch data from an API
+  return {
+    props: {
+      meetups: DUMMY_MEETUPS
+    },
+    revalidate: 1 // Regenerate page every 1 second if there's a request
+  }; 
+}
+```
+
+<Warning>
+`revalidate` is in seconds. Setting it too low can cause unnecessary regenerations.
+</Warning>
+
+### Server-Side Rendering (SSR)
+
+Use `getServerSideProps` to fetch data on every request:
+
+```jsx pages/index.js
+export async function getServerSideProps(context) {
+  const req = context.req;
+  const res = context.res;
+
+  // fetch data from an API
+
+  return {
+    props: {
+      meetups: DUMMY_MEETUPS
+    }
+  };
+}
+```
+
+<Card title="SSR vs SSG" icon="scale-balanced">
+  **SSR**: Data fetched on every request - always fresh but slower
+  
+  **SSG**: Data fetched at build time - faster but may be stale
+</Card>
+
+## The _app.js File
+
+The `_app.js` file is a wrapper around all your pages:
+
+```jsx pages/_app.js
+function MyApp({ Component, pageProps }) {
+  return <Component {...pageProps} />
+}
+
+export default MyApp;
+```
+
+<Tip>
+Use `_app.js` to:
+- Add global layouts
+- Include global CSS
+- Persist state between page changes
+- Add global error handling
+</Tip>
+
+## API Routes
+
+Create API endpoints inside the `pages/api/` directory:
+
+```jsx pages/api/hello.js
+export default function handler(req, res) {
+  res.status(200).json({ message: 'Hello from NextJS!' })
+}
+```
+
+Access this endpoint at `/api/hello`.
+
+## Key Concepts Summary
+
+<Steps>
+  <Step title="File-based Routing">
+    Every file in `pages/` becomes a route automatically
+  </Step>
+  <Step title="Pre-rendering">
+    Pages are pre-rendered by default for better performance and SEO
+  </Step>
+  <Step title="Data Fetching">
+    Use `getStaticProps`, `getServerSideProps`, or `getStaticPaths` for data
+  </Step>
+  <Step title="API Routes">
+    Build backend endpoints in the same project using `pages/api/`
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="App Router" icon="route" href="/nextjs/app-router">
+    Learn the modern App Router with enhanced features
+  </Card>
+  <Card title="Server Components" icon="server" href="/nextjs/server-components">
+    Understand React Server Components in NextJS
+  </Card>
+</CardGroup>

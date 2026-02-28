@@ -1,122 +1,124 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "React - The Complete Guide Course Resources",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#61DAFB",
+    "light": "#149ECA",
+    "dark": "#087EA4"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/academind/react-complete-guide-course-resources"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/academind/react-complete-guide-course-resources"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "repository-structure"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "core/getting-started",
+              "core/javascript-refresher",
+              "core/react-essentials",
+              "core/essentials-deep-dive",
+              "core/debugging"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Styling & UI",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "ui/styling",
+              "ui/refs-portals",
+              "ui/animations"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "State Management",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "state/context-reducer",
+              "state/side-effects",
+              "state/behind-scenes",
+              "state/redux-basics",
+              "state/advanced-redux"
+            ]
+          },
+          {
+            "group": "Advanced Topics",
+            "pages": [
+              "advanced/custom-hooks",
+              "advanced/forms-input",
+              "advanced/form-actions",
+              "advanced/http-requests",
+              "advanced/class-components",
+              "advanced/patterns"
+            ]
+          },
+          {
+            "group": "NextJS",
+            "pages": [
+              "nextjs/introduction",
+              "nextjs/app-router",
+              "nextjs/server-components",
+              "nextjs/server-actions"
+            ]
+          },
+          {
+            "group": "Testing & TypeScript",
+            "pages": [
+              "testing/react-testing",
+              "typescript/react-typescript"
+            ]
+          },
+          {
+            "group": "Production",
+            "pages": [
+              "production/routing",
+              "production/authentication",
+              "production/deployment",
+              "production/react-query"
+            ]
+          },
+          {
+            "group": "Practice Projects",
+            "pages": [
+              "projects/overview",
+              "projects/project-management",
+              "projects/react-quiz",
+              "projects/food-order"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Code Snapshots",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Reference",
             "pages": [
-              "api-reference/introduction"
-            ]
-          },
-          {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "snapshots/overview",
+              "snapshots/how-to-use",
+              "snapshots/section-index"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

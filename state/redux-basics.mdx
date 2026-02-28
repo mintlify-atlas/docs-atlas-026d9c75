@@ -1,0 +1,694 @@
+---
+title: Redux Fundamentals
+description: Learn Redux state management with Redux Toolkit for predictable, centralized application state
+---
+
+## Overview
+
+Redux is a predictable state container for JavaScript applications. It helps manage application state in a centralized store, making state changes traceable and debuggable.
+
+<CardGroup cols={2}>
+  <Card title="Redux Store" icon="database">
+    Single source of truth for application state
+  </Card>
+  <Card title="Actions" icon="bolt">
+    Describe what happened in the app
+  </Card>
+  <Card title="Reducers" icon="gears">
+    Specify how state changes
+  </Card>
+  <Card title="Redux Toolkit" icon="toolkit">
+    Modern, efficient Redux development
+  </Card>
+</CardGroup>
+
+---
+
+## Why Redux?
+
+<AccordionGroup>
+  <Accordion title="Problems Redux Solves">
+    - **Prop Drilling**: No need to pass state through many components
+    - **State Management**: Centralized state easier to manage
+    - **Predictability**: State changes follow strict patterns
+    - **Debugging**: Time-travel debugging with dev tools
+    - **Scalability**: Works well in large applications
+  </Accordion>
+  
+  <Accordion title="When to Use Redux">
+    Consider Redux when:
+    - App has complex state logic
+    - State is needed in many places
+    - State updates follow complex patterns
+    - You need powerful debugging tools
+    - Team prefers explicit state management
+    
+    You might NOT need Redux for:
+    - Simple apps with minimal state
+    - State mostly local to components
+    - Quick prototypes
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Core Concepts
+
+<Tabs>
+  <Tab title="Store">
+    The single source of truth holding application state:
+    
+    ```jsx
+    import { configureStore } from '@reduxjs/toolkit';
+    
+    const store = configureStore({
+      reducer: {
+        counter: counterReducer,
+        auth: authReducer,
+      },
+    });
+    ```
+    
+    <Info>
+      The store:
+      - Holds entire application state
+      - Allows state access via `getState()`
+      - Updates state via `dispatch(action)`
+      - Registers listeners via `subscribe()`
+    </Info>
+  </Tab>
+  
+  <Tab title="Actions">
+    Plain objects describing what happened:
+    
+    ```jsx
+    // Action object
+    {
+      type: 'counter/increment',
+      payload: 10
+    }
+    ```
+    
+    Actions have:
+    - **type**: String describing the action
+    - **payload**: (Optional) Additional data
+  </Tab>
+  
+  <Tab title="Reducers">
+    Pure functions specifying state changes:
+    
+    ```jsx
+    function counterReducer(state = initialState, action) {
+      switch (action.type) {
+        case 'counter/increment':
+          return { ...state, value: state.value + 1 };
+        default:
+          return state;
+      }
+    }
+    ```
+    
+    Reducers must:
+    - Be pure functions (no side effects)
+    - Return new state (never mutate)
+    - Handle unknown actions by returning state
+  </Tab>
+</Tabs>
+
+---
+
+## Redux Toolkit (RTK)
+
+Redux Toolkit is the official, recommended way to write Redux logic. It simplifies common patterns and includes best practices.
+
+<Steps>
+  <Step title="Install Redux Toolkit">
+    ```bash
+    npm install @reduxjs/toolkit react-redux
+    ```
+  </Step>
+  
+  <Step title="Create a Slice">
+    Slices contain reducer logic and actions for a feature
+  </Step>
+  
+  <Step title="Configure Store">
+    Combine slices into a single store
+  </Step>
+  
+  <Step title="Provide Store">
+    Make store available to React components
+  </Step>
+  
+  <Step title="Use in Components">
+    Read state with `useSelector` and dispatch with `useDispatch`
+  </Step>
+</Steps>
+
+---
+
+## Creating a Slice
+
+Slices are the core of Redux Toolkit, combining actions and reducers.
+
+<CodeGroup>
+```jsx counter.js
+import { createSlice } from '@reduxjs/toolkit';
+
+const initialCounterState = { counter: 0, showCounter: true };
+
+const counterSlice = createSlice({
+  name: 'counter',
+  initialState: initialCounterState,
+  reducers: {
+    increment(state) {
+      // Looks like mutation, but Immer handles it!
+      state.counter++;
+    },
+    decrement(state) {
+      state.counter--;
+    },
+    increase(state, action) {
+      state.counter = state.counter + action.payload;
+    },
+    toggleCounter(state) {
+      state.showCounter = !state.showCounter;
+    },
+  },
+});
+
+export const counterActions = counterSlice.actions;
+export default counterSlice.reducer;
+```
+
+```jsx auth.js
+import { createSlice } from '@reduxjs/toolkit';
+
+const initialAuthState = {
+  isAuthenticated: false,
+};
+
+const authSlice = createSlice({
+  name: 'authentication',
+  initialState: initialAuthState,
+  reducers: {
+    login(state) {
+      state.isAuthenticated = true;
+    },
+    logout(state) {
+      state.isAuthenticated = false;
+    },
+  },
+});
+
+export const authActions = authSlice.actions;
+export default authSlice.reducer;
+```
+</CodeGroup>
+
+<Info>
+  **createSlice Benefits:**
+  - Automatically generates action creators
+  - Uses Immer for "mutable" updates
+  - Reduces boilerplate code
+  - Type-safe with TypeScript
+</Info>
+
+---
+
+## Configuring the Store
+
+Combine all slices into a single store:
+
+```jsx store/index.js
+import { configureStore } from '@reduxjs/toolkit';
+import counterReducer from './counter';
+import authReducer from './auth';
+
+const store = configureStore({
+  reducer: {
+    counter: counterReducer,
+    auth: authReducer,
+  },
+});
+
+export default store;
+```
+
+<AccordionGroup>
+  <Accordion title="State Shape">
+    With this configuration, state looks like:
+    
+    ```jsx
+    {
+      counter: {
+        counter: 0,
+        showCounter: true
+      },
+      auth: {
+        isAuthenticated: false
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="configureStore Features">
+    `configureStore` automatically:
+    - Sets up Redux DevTools
+    - Adds middleware (thunk, etc.)
+    - Enables development checks
+    - Combines reducers
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Providing the Store
+
+Make the store available to your React app:
+
+```jsx index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
+import store from './store/index';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <Provider store={store}>
+    <App />
+  </Provider>
+);
+```
+
+<Warning>
+  The `Provider` component must wrap your entire app to give all components access to the store.
+</Warning>
+
+---
+
+## Using Redux in Components
+
+Access state and dispatch actions using React-Redux hooks.
+
+<Tabs>
+  <Tab title="useSelector">
+    Read data from the store:
+    
+    ```jsx
+    import { useSelector } from 'react-redux';
+    
+    const counter = useSelector((state) => state.counter.counter);
+    const show = useSelector((state) => state.counter.showCounter);
+    const isAuth = useSelector((state) => state.auth.isAuthenticated);
+    ```
+    
+    <Info>
+      `useSelector` automatically subscribes to store updates. Component re-renders when selected state changes.
+    </Info>
+  </Tab>
+  
+  <Tab title="useDispatch">
+    Dispatch actions to update state:
+    
+    ```jsx
+    import { useDispatch } from 'react-redux';
+    import { counterActions } from '../store/counter';
+    
+    const dispatch = useDispatch();
+    
+    // Dispatch actions
+    dispatch(counterActions.increment());
+    dispatch(counterActions.increase(10));
+    dispatch(counterActions.toggleCounter());
+    ```
+  </Tab>
+</Tabs>
+
+### Complete Component Example
+
+```jsx Counter.js
+import { useSelector, useDispatch } from 'react-redux';
+import { counterActions } from '../store/counter';
+import classes from './Counter.module.css';
+
+const Counter = () => {
+  const dispatch = useDispatch();
+  const counter = useSelector((state) => state.counter.counter);
+  const show = useSelector((state) => state.counter.showCounter);
+
+  const incrementHandler = () => {
+    dispatch(counterActions.increment());
+  };
+
+  const increaseHandler = () => {
+    dispatch(counterActions.increase(10));
+  };
+
+  const decrementHandler = () => {
+    dispatch(counterActions.decrement());
+  };
+
+  const toggleCounterHandler = () => {
+    dispatch(counterActions.toggleCounter());
+  };
+
+  return (
+    <main className={classes.counter}>
+      <h1>Redux Counter</h1>
+      {show && <div className={classes.value}>{counter}</div>}
+      <div>
+        <button onClick={incrementHandler}>Increment</button>
+        <button onClick={increaseHandler}>Increase by 10</button>
+        <button onClick={decrementHandler}>Decrement</button>
+      </div>
+      <button onClick={toggleCounterHandler}>Toggle Counter</button>
+    </main>
+  );
+};
+
+export default Counter;
+```
+
+---
+
+## Action Payloads
+
+Pass data to actions via payloads:
+
+<CodeGroup>
+```jsx Slice Definition
+const counterSlice = createSlice({
+  name: 'counter',
+  initialState: { counter: 0 },
+  reducers: {
+    increase(state, action) {
+      // action.payload contains the data
+      state.counter = state.counter + action.payload;
+    },
+  },
+});
+```
+
+```jsx Component Usage
+const increaseHandler = () => {
+  // Pass payload value
+  dispatch(counterActions.increase(10));
+};
+
+// RTK automatically creates action like:
+// { type: 'counter/increase', payload: 10 }
+```
+</CodeGroup>
+
+<Info>
+  **Redux Toolkit Payload Convention:**
+  
+  When you dispatch `counterActions.increase(10)`, RTK creates:
+  ```jsx
+  {
+    type: 'counter/increase',
+    payload: 10
+  }
+  ```
+  
+  For multiple values, pass an object:
+  ```jsx
+  dispatch(counterActions.updateUser({ id: 1, name: 'John' }));
+  ```
+</Info>
+
+---
+
+## Working with Multiple Slices
+
+Organize related state into separate slices:
+
+```jsx App.js
+import { useSelector } from 'react-redux';
+import Counter from './components/Counter';
+import Auth from './components/Auth';
+import Header from './components/Header';
+import UserProfile from './components/UserProfile';
+
+function App() {
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+
+  return (
+    <>
+      <Header />
+      {!isAuthenticated && <Auth />}
+      {isAuthenticated && <UserProfile />}
+      <Counter />
+    </>
+  );
+}
+
+export default App;
+```
+
+<Tip>
+  **Slice Organization:**
+  
+  Create separate slices for different features:
+  - `userSlice` - User profile and preferences
+  - `cartSlice` - Shopping cart
+  - `authSlice` - Authentication state
+  - `uiSlice` - UI state (modals, notifications)
+  
+  Each slice is independent and focused on one concern.
+</Tip>
+
+---
+
+## Redux Immutability
+
+<Tabs>
+  <Tab title="Traditional Redux">
+    Manually create new state objects:
+    
+    ```jsx
+    function counterReducer(state, action) {
+      if (action.type === 'increment') {
+        // ✅ Create new object
+        return {
+          ...state,
+          counter: state.counter + 1
+        };
+      }
+      
+      // ❌ NEVER mutate state
+      // state.counter++;
+      // return state;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Redux Toolkit">
+    RTK uses Immer - write "mutable" code that's converted to immutable:
+    
+    ```jsx
+    const counterSlice = createSlice({
+      name: 'counter',
+      initialState: { counter: 0 },
+      reducers: {
+        increment(state) {
+          // Looks like mutation, but it's not!
+          // Immer converts to immutable update
+          state.counter++;
+        },
+      },
+    });
+    ```
+    
+    <Info>
+      Behind the scenes, Immer:
+      1. Creates a draft state
+      2. Tracks your "mutations"
+      3. Produces new immutable state
+      
+      You get clean code AND immutability!
+    </Info>
+  </Tab>
+</Tabs>
+
+---
+
+## Class-Based Components
+
+While the course focuses on hooks, Redux also works with class components:
+
+```jsx
+import { Component } from 'react';
+import { connect } from 'react-redux';
+
+class Counter extends Component {
+  incrementHandler() {
+    this.props.increment();
+  }
+
+  render() {
+    return (
+      <div>
+        <div>{this.props.counter}</div>
+        <button onClick={this.incrementHandler.bind(this)}>
+          Increment
+        </button>
+      </div>
+    );
+  }
+}
+
+const mapStateToProps = (state) => {
+  return {
+    counter: state.counter.counter,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    increment: () => dispatch({ type: 'counter/increment' }),
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(Counter);
+```
+
+<Warning>
+  Modern React apps should use hooks (`useSelector` and `useDispatch`) instead of `connect`. The `connect` HOC is legacy but still supported.
+</Warning>
+
+---
+
+## Redux DevTools
+
+Redux Toolkit automatically enables Redux DevTools:
+
+<Steps>
+  <Step title="Install Extension">
+    Install Redux DevTools browser extension
+  </Step>
+  <Step title="View State">
+    Inspect current state structure and values
+  </Step>
+  <Step title="Track Actions">
+    See all dispatched actions in order
+  </Step>
+  <Step title="Time Travel">
+    Jump to any previous state
+  </Step>
+  <Step title="Debug Issues">
+    Understand state changes and find bugs
+  </Step>
+</Steps>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Organize by Feature" icon="folder-tree">
+    Group related slices, components, and logic together
+  </Card>
+  <Card title="Normalize State" icon="database">
+    Store data in flat structure, not deeply nested
+  </Card>
+  <Card title="Use Redux Toolkit" icon="toolkit">
+    Avoid hand-written Redux - use RTK always
+  </Card>
+  <Card title="Selective Selectors" icon="filter">
+    Select only the state you need to minimize re-renders
+  </Card>
+  <Card title="Action Naming" icon="tag">
+    Use clear, descriptive action names
+  </Card>
+  <Card title="Keep Logic in Reducers" icon="brain">
+    Reducers contain business logic, components stay simple
+  </Card>
+</CardGroup>
+
+---
+
+## Common Patterns
+
+<AccordionGroup>
+  <Accordion title="Loading States">
+    ```jsx
+    const dataSlice = createSlice({
+      name: 'data',
+      initialState: {
+        items: [],
+        loading: false,
+        error: null,
+      },
+      reducers: {
+        fetchStart(state) {
+          state.loading = true;
+          state.error = null;
+        },
+        fetchSuccess(state, action) {
+          state.loading = false;
+          state.items = action.payload;
+        },
+        fetchError(state, action) {
+          state.loading = false;
+          state.error = action.payload;
+        },
+      },
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Boolean Toggles">
+    ```jsx
+    reducers: {
+      toggleSidebar(state) {
+        state.sidebarOpen = !state.sidebarOpen;
+      },
+      openModal(state) {
+        state.modalOpen = true;
+      },
+      closeModal(state) {
+        state.modalOpen = false;
+      },
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Array Operations">
+    ```jsx
+    reducers: {
+      addItem(state, action) {
+        state.items.push(action.payload);
+      },
+      removeItem(state, action) {
+        state.items = state.items.filter(
+          (item) => item.id !== action.payload
+        );
+      },
+      updateItem(state, action) {
+        const index = state.items.findIndex(
+          (item) => item.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+      },
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Redux Toolkit Docs" icon="book" href="https://redux-toolkit.js.org/">
+    Official Redux Toolkit documentation
+  </Card>
+  <Card title="React-Redux Hooks" icon="link" href="https://react-redux.js.org/api/hooks">
+    useSelector and useDispatch API reference
+  </Card>
+</CardGroup>

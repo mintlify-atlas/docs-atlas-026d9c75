@@ -1,0 +1,353 @@
+---
+title: 'App Router Fundamentals'
+description: 'Master the modern NextJS App Router with file-based routing and layouts'
+---
+
+## Introduction to App Router
+
+The App Router is the modern routing system in NextJS, introduced in NextJS 13. It uses the `app/` directory and provides enhanced features:
+
+- **Nested layouts** - Share UI across routes
+- **Server Components by default** - Better performance
+- **Streaming** - Progressive rendering
+- **Built-in loading and error states** - Better UX
+
+<Warning>
+The App Router (`app/` directory) and Pages Router (`pages/` directory) can coexist, but App Router takes precedence when both exist.
+</Warning>
+
+## Project Structure
+
+In the App Router, every folder is a route segment, and special files define the UI:
+
+```
+app/
+├── layout.js          # Root layout (required)
+├── page.js            # Home page (/)
+├── about/
+│   └── page.js        # About page (/about)
+└── blog/
+    ├── page.js        # Blog list (/blog)
+    └── [slug]/
+        └── page.js    # Blog post (/blog/post-1)
+```
+
+<Info>
+Only `page.js` files are publicly accessible as routes. Other files like `layout.js`, `loading.js`, and `error.js` are special UI files.
+</Info>
+
+## Root Layout
+
+Every App Router application must have a root `layout.js`:
+
+```jsx app/layout.js
+import './globals.css'
+
+export const metadata = {
+  title: 'NextJS Course App',
+  description: 'Your first NextJS app!',
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+<Accordion title="Root Layout Features">
+- **Required** - Every app needs a root layout
+- Must contain `<html>` and `<body>` tags
+- Can export `metadata` for SEO
+- Shared across all pages
+- Does not re-render on navigation
+</Accordion>
+
+## Creating Pages
+
+Create routes by adding `page.js` files:
+
+```jsx app/page.js
+import Link from 'next/link';
+
+export default function Home() {
+  return (
+    <main>
+      <img src="/logo.png" alt="A server surrounded by magic sparkles." />
+      <h1>Welcome to this NextJS Course!</h1>
+      <p>Let's get started!</p>
+      <p><Link href="/about">About Us</Link></p>
+    </main>
+  );
+}
+```
+
+### Multiple Routes
+
+```jsx app/about/page.js
+export default function AboutPage() {
+  return (
+    <main>
+      <h1>About Us</h1>
+      <p>Learn more about our NextJS course.</p>
+    </main>
+  );
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="/" icon="house">
+    `app/page.js`
+  </Card>
+  <Card title="/about" icon="circle-info">
+    `app/about/page.js`
+  </Card>
+  <Card title="/blog" icon="blog">
+    `app/blog/page.js`
+  </Card>
+  <Card title="/blog/[slug]" icon="brackets-curly">
+    `app/blog/[slug]/page.js`
+  </Card>
+</CardGroup>
+
+## Navigation with Link
+
+Use the `Link` component for client-side navigation:
+
+```jsx
+import Link from 'next/link';
+
+export default function Navigation() {
+  return (
+    <nav>
+      <Link href="/">Home</Link>
+      <Link href="/about">About</Link>
+      <Link href="/blog">Blog</Link>
+    </nav>
+  );
+}
+```
+
+<Tip>
+`Link` provides:
+- Client-side navigation (no full page reload)
+- Automatic prefetching in viewport
+- Smooth transitions between routes
+- Browser history support
+</Tip>
+
+## Dynamic Routes
+
+Create dynamic segments using square brackets:
+
+```jsx app/blog/[slug]/page.js
+export default function BlogPostPage({ params }) {
+  return (
+    <main>
+      <h1>Blog Post</h1>
+      <p>{params.slug}</p>
+    </main>
+  );
+}
+```
+
+### Accessing Route Parameters
+
+The `params` prop contains dynamic route parameters:
+
+<CodeGroup>
+```jsx URL: /blog/my-first-post
+export default function BlogPostPage({ params }) {
+  console.log(params.slug); // "my-first-post"
+  return <h1>{params.slug}</h1>;
+}
+```
+
+```jsx URL: /shop/electronics/laptop
+export default function ProductPage({ params }) {
+  console.log(params.category); // "electronics"
+  console.log(params.product);  // "laptop"
+  return <h1>{params.product}</h1>;
+}
+```
+</CodeGroup>
+
+## Nested Layouts
+
+Create layouts for specific route segments:
+
+```jsx app/meals/layout.js
+export default function MealsLayout({ children }) {
+  return (
+    <>
+      <nav>
+        <Link href="/meals">All Meals</Link>
+        <Link href="/meals/share">Share Meal</Link>
+      </nav>
+      <main>{children}</main>
+    </>
+  );
+}
+```
+
+<Info>
+Layouts wrap all child pages and nested layouts. Navigation between pages within a layout does not re-render the layout.
+</Info>
+
+## Building a Complete App: Foodies
+
+Let's examine a real example from the course - a food sharing application:
+
+```jsx app/page.js
+import Link from 'next/link';
+import ImageSlideshow from '@/components/images/image-slideshow';
+import classes from './page.module.css';
+
+export default function Home() {
+  return (
+    <>
+      <header className={classes.header}>
+        <div className={classes.slideshow}>
+          <ImageSlideshow />
+        </div>
+        <div>
+          <div className={classes.hero}>
+            <h1>NextLevel Food for NextLevel Foodies</h1>
+            <p>Taste & share food from all over the world.</p>
+          </div>
+          <div className={classes.cta}>
+            <Link href="/community">Join the Community</Link>
+            <Link href="/meals">Explore Meals</Link>
+          </div>
+        </div>
+      </header>
+      <main>
+        <section className={classes.section}>
+          <h2>How it works</h2>
+          <p>
+            NextLevel Food is a platform for foodies to share their favorite
+            recipes with the world. It's a place to discover new dishes, and to
+            connect with other food lovers.
+          </p>
+        </section>
+
+        <section className={classes.section}>
+          <h2>Why NextLevel Food?</h2>
+          <p>
+            NextLevel Food is a platform for foodies to share their favorite
+            recipes with the world.
+          </p>
+        </section>
+      </main>
+    </>
+  );
+}
+```
+
+## CSS Modules
+
+NextJS supports CSS Modules out of the box:
+
+```css page.module.css
+.header {
+  display: flex;
+  gap: 3rem;
+  padding: 3rem;
+}
+
+.hero h1 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.cta a {
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+}
+```
+
+<Accordion title="CSS Modules Benefits">
+- **Scoped styles** - No naming conflicts
+- **Automatic optimization** - Unused styles removed
+- **Type-safe** - Import as JavaScript object
+- **Co-located** - Keep styles with components
+</Accordion>
+
+## Image Optimization
+
+Use the `Image` component for automatic optimization:
+
+```jsx
+import Image from 'next/image';
+
+export default function MealItem({ meal }) {
+  return (
+    <article>
+      <Image
+        src={meal.image}
+        alt={meal.title}
+        fill
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+      />
+      <h2>{meal.title}</h2>
+    </article>
+  );
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="Lazy Loading" icon="clock">
+    Images load as they enter viewport
+  </Card>
+  <Card title="Size Optimization" icon="compress">
+    Automatic WebP/AVIF format conversion
+  </Card>
+  <Card title="Responsive" icon="mobile">
+    Serves correct size for device
+  </Card>
+  <Card title="Blur Placeholder" icon="eye-slash">
+    Smooth loading experience
+  </Card>
+</CardGroup>
+
+## Route Organization
+
+<Steps>
+  <Step title="Create Route Folders">
+    Each folder represents a URL segment
+  </Step>
+  <Step title="Add page.js">
+    Make the route publicly accessible
+  </Step>
+  <Step title="Add layout.js (Optional)">
+    Share UI across child routes
+  </Step>
+  <Step title="Add Special Files">
+    Include `loading.js`, `error.js`, `not-found.js` as needed
+  </Step>
+</Steps>
+
+## Key Differences: Pages vs App Router
+
+| Feature | Pages Router | App Router |
+|---------|--------------|------------|
+| Directory | `pages/` | `app/` |
+| Routes | File-based | Folder-based |
+| Data Fetching | `getServerSideProps` | `async` components |
+| Default | Client Components | Server Components |
+| Layouts | `_app.js` | `layout.js` |
+| Loading States | Custom | `loading.js` |
+| Error Handling | `_error.js` | `error.js` |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server Components" icon="server" href="/nextjs/server-components">
+    Learn about React Server Components
+  </Card>
+  <Card title="Server Actions" icon="bolt" href="/nextjs/server-actions">
+    Handle form submissions and mutations
+  </Card>
+</CardGroup>

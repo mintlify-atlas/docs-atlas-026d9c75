@@ -1,0 +1,480 @@
+---
+title: Side Effects and useEffect
+description: Master useEffect hook for handling side effects, async operations, and component lifecycle in React
+---
+
+## Overview
+
+Side effects are operations that reach outside the component function - like fetching data, setting up subscriptions, or interacting with browser APIs. The `useEffect` hook manages these operations in functional components.
+
+<CardGroup cols={2}>
+  <Card title="useEffect Hook" icon="bolt">
+    Execute side effects after render
+  </Card>
+  <Card title="Dependencies" icon="link">
+    Control when effects run
+  </Card>
+  <Card title="Cleanup Functions" icon="broom">
+    Prevent memory leaks and bugs
+  </Card>
+  <Card title="useCallback" icon="arrows-rotate">
+    Optimize function dependencies
+  </Card>
+</CardGroup>
+
+---
+
+## What Are Side Effects?
+
+Side effects are any operations that affect things outside the component function scope.
+
+<AccordionGroup>
+  <Accordion title="Common Side Effects">
+    - Fetching data from APIs
+    - Subscribing to events
+    - Setting timers
+    - Manipulating the DOM directly
+    - Reading/writing localStorage
+    - Logging to console
+  </Accordion>
+  
+  <Accordion title="Why useEffect?">
+    Side effects should not run during render because:
+    - They can cause infinite loops
+    - They make components impure
+    - They can trigger unnecessary re-renders
+    
+    `useEffect` runs **after** the component renders, keeping render pure.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Basic Syntax
+
+```jsx
+useEffect(() => {
+  // Effect code here
+  
+  return () => {
+    // Cleanup code (optional)
+  };
+}, [dependencies]);
+```
+
+<Info>
+  **Effect Timing:**
+  - Effect runs after render is committed to screen
+  - Cleanup runs before next effect or unmount
+  - Dependencies determine when effect re-runs
+</Info>
+
+---
+
+## Fetching Data with useEffect
+
+Here's a real example from the course showing geolocation and data fetching:
+
+```jsx App.jsx
+import { useRef, useState, useEffect } from 'react';
+import { sortPlacesByDistance } from './loc.js';
+import { AVAILABLE_PLACES } from './data.js';
+
+function App() {
+  const [availablePlaces, setAvailablePlaces] = useState([]);
+  const [pickedPlaces, setPickedPlaces] = useState([]);
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const sortedPlaces = sortPlacesByDistance(
+        AVAILABLE_PLACES,
+        position.coords.latitude,
+        position.coords.longitude
+      );
+
+      setAvailablePlaces(sortedPlaces);
+    });
+  }, []); // Empty dependency array - runs once on mount
+
+  function handleSelectPlace(id) {
+    setPickedPlaces((prevPickedPlaces) => {
+      if (prevPickedPlaces.some((place) => place.id === id)) {
+        return prevPickedPlaces;
+      }
+      const place = AVAILABLE_PLACES.find((place) => place.id === id);
+      return [place, ...prevPickedPlaces];
+    });
+  }
+
+  return (
+    <Places
+      title="Available Places"
+      places={availablePlaces}
+      fallbackText="Sorting places by distance..."
+      onSelectPlace={handleSelectPlace}
+    />
+  );
+}
+```
+
+<Warning>
+  **Why useEffect Here?**
+  
+  The `navigator.geolocation` API is asynchronous and should not run during render. Running it directly in the component body would:
+  - Execute on every render
+  - Potentially cause infinite loops
+  - Not wait for the component to mount
+</Warning>
+
+---
+
+## Understanding Dependencies
+
+The dependency array controls when your effect runs.
+
+<Tabs>
+  <Tab title="No Dependencies">
+    Effect runs after **every** render:
+    
+    ```jsx
+    useEffect(() => {
+      console.log('Runs after every render');
+    }); // No dependency array
+    ```
+    
+    <Warning>Use sparingly - can cause performance issues</Warning>
+  </Tab>
+  
+  <Tab title="Empty Array">
+    Effect runs **once** on mount:
+    
+    ```jsx
+    useEffect(() => {
+      console.log('Runs once on mount');
+    }, []); // Empty array
+    ```
+    
+    Perfect for initial data fetching and setup.
+  </Tab>
+  
+  <Tab title="With Dependencies">
+    Effect runs when dependencies change:
+    
+    ```jsx
+    useEffect(() => {
+      console.log('User changed:', userId);
+    }, [userId]); // Runs when userId changes
+    ```
+    
+    Include all values used inside the effect.
+  </Tab>
+</Tabs>
+
+---
+
+## Cleanup Functions
+
+Cleanup functions prevent memory leaks by canceling subscriptions, timers, and other ongoing operations.
+
+<CodeGroup>
+```jsx DeleteConfirmation.jsx
+import { useEffect } from 'react';
+
+export default function DeleteConfirmation({ onConfirm, onCancel }) {
+  useEffect(() => {
+    console.log('TIMER SET');
+    const timer = setTimeout(() => {
+      onConfirm();
+    }, 3000);
+
+    return () => {
+      console.log('Cleaning up timer');
+      clearTimeout(timer);
+    };
+  }, [onConfirm]);
+
+  return (
+    <div id="delete-confirmation">
+      <h2>Are you sure?</h2>
+      <p>Do you really want to remove this place?</p>
+      <div id="confirmation-actions">
+        <button onClick={onCancel} className="button-text">
+          No
+        </button>
+        <button onClick={onConfirm} className="button">
+          Yes
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+<Steps>
+  <Step title="Effect Runs">
+    Timer is set when component mounts or `onConfirm` changes
+  </Step>
+  <Step title="Cleanup Before Re-run">
+    Previous timer is cleared before setting new one
+  </Step>
+  <Step title="Cleanup on Unmount">
+    Timer is cleared when component unmounts
+  </Step>
+</Steps>
+
+<Info>
+  **When Cleanup Runs:**
+  - Before the effect runs again
+  - When the component unmounts
+  - This prevents memory leaks and stale operations
+</Info>
+
+---
+
+## The useCallback Hook
+
+When passing functions as dependencies to `useEffect`, use `useCallback` to prevent unnecessary effect re-runs.
+
+```jsx App.jsx
+import { useCallback, useEffect, useState } from 'react';
+
+function App() {
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const selectedPlace = useRef();
+
+  // Memoize function so it doesn't change on every render
+  const handleRemovePlace = useCallback(function handleRemovePlace() {
+    setPickedPlaces((prevPickedPlaces) =>
+      prevPickedPlaces.filter((place) => place.id !== selectedPlace.current)
+    );
+    setModalIsOpen(false);
+
+    const storedIds = JSON.parse(localStorage.getItem('selectedPlaces')) || [];
+    localStorage.setItem(
+      'selectedPlaces',
+      JSON.stringify(storedIds.filter((id) => id !== selectedPlace.current))
+    );
+  }, []); // Only created once
+
+  return (
+    <Modal open={modalIsOpen}>
+      <DeleteConfirmation
+        onConfirm={handleRemovePlace}
+        onCancel={() => setModalIsOpen(false)}
+      />
+    </Modal>
+  );
+}
+```
+
+<AccordionGroup>
+  <Accordion title="Why useCallback?">
+    Functions are recreated on every render. Without `useCallback`:
+    
+    ```jsx
+    // New function created every render
+    const handleClick = () => { /* ... */ };
+    ```
+    
+    This causes child components and effects depending on it to re-run unnecessarily.
+  </Accordion>
+  
+  <Accordion title="useCallback Syntax">
+    ```jsx
+    const memoizedFn = useCallback(
+      () => {
+        // function body
+      },
+      [dependencies]
+    );
+    ```
+    
+    Returns the same function reference unless dependencies change.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Common Patterns
+
+### Pattern 1: LocalStorage Sync
+
+```jsx
+useEffect(() => {
+  const storedIds = JSON.parse(localStorage.getItem('selectedPlaces')) || [];
+  const storedPlaces = storedIds.map((id) =>
+    AVAILABLE_PLACES.find((place) => place.id === id)
+  );
+  setPickedPlaces(storedPlaces);
+}, []); // Load once on mount
+
+// Save on every change
+function handleSelectPlace(id) {
+  // Update state
+  setPickedPlaces(/* ... */);
+  
+  // Sync to localStorage (not in useEffect)
+  const storedIds = JSON.parse(localStorage.getItem('selectedPlaces')) || [];
+  localStorage.setItem('selectedPlaces', JSON.stringify([id, ...storedIds]));
+}
+```
+
+<Tip>
+  **When useEffect is NOT Needed:**
+  
+  You don't need `useEffect` for:
+  - Direct responses to user events (use event handlers)
+  - Transforming data for render (compute during render)
+  - Simple state updates
+</Tip>
+
+### Pattern 2: Event Listeners
+
+```jsx
+useEffect(() => {
+  const handleResize = () => {
+    console.log('Window resized');
+  };
+  
+  window.addEventListener('resize', handleResize);
+  
+  return () => {
+    window.removeEventListener('resize', handleResize);
+  };
+}, []);
+```
+
+### Pattern 3: Async Data Fetching
+
+```jsx
+useEffect(() => {
+  let ignore = false;
+  
+  async function fetchData() {
+    const response = await fetch('/api/data');
+    const data = await response.json();
+    
+    if (!ignore) {
+      setData(data);
+    }
+  }
+  
+  fetchData();
+  
+  return () => {
+    ignore = true; // Prevent state update if unmounted
+  };
+}, []);
+```
+
+---
+
+## Optimizing State Updates
+
+Use functional state updates when new state depends on previous state:
+
+```jsx
+// ✅ Correct - uses previous state
+setCounter((prevCounter) => prevCounter + 1);
+
+// ❌ Can be problematic - uses stale closure
+setCounter(counter + 1);
+```
+
+<Info>
+  **Functional Updates Benefits:**
+  - Always uses the latest state value
+  - Prevents bugs from stale closures
+  - Required when state update depends on previous value
+</Info>
+
+---
+
+## Common Mistakes
+
+<AccordionGroup>
+  <Accordion title="Missing Dependencies">
+    ```jsx
+    // ❌ Wrong - missing dependency
+    useEffect(() => {
+      console.log(userId);
+    }, []); // userId not in dependencies
+    
+    // ✅ Correct
+    useEffect(() => {
+      console.log(userId);
+    }, [userId]);
+    ```
+    
+    React will warn you about this. Always include all dependencies.
+  </Accordion>
+  
+  <Accordion title="Not Cleaning Up">
+    ```jsx
+    // ❌ Wrong - no cleanup
+    useEffect(() => {
+      const timer = setInterval(() => {
+        console.log('tick');
+      }, 1000);
+    }, []);
+    
+    // ✅ Correct - cleanup interval
+    useEffect(() => {
+      const timer = setInterval(() => {
+        console.log('tick');
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }, []);
+    ```
+  </Accordion>
+  
+  <Accordion title="Infinite Loops">
+    ```jsx
+    // ❌ Wrong - creates infinite loop
+    useEffect(() => {
+      setCount(count + 1); // triggers re-render
+    }, [count]); // which triggers effect again
+    
+    // ✅ Correct - runs once or has condition
+    useEffect(() => {
+      if (count < 10) {
+        setCount(count + 1);
+      }
+    }, [count]);
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep Effects Focused" icon="bullseye">
+    Each effect should handle one concern. Split into multiple effects if needed.
+  </Card>
+  <Card title="Always Clean Up" icon="broom">
+    Return cleanup functions for timers, subscriptions, and listeners.
+  </Card>
+  <Card title="List All Dependencies" icon="list-check">
+    Include every value used inside the effect in the dependency array.
+  </Card>
+  <Card title="Use useCallback" icon="memo">
+    Memoize functions passed as dependencies to prevent unnecessary runs.
+  </Card>
+</CardGroup>
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="React Docs: useEffect" icon="book" href="https://react.dev/reference/react/useEffect">
+    Official documentation for useEffect
+  </Card>
+  <Card title="You Might Not Need an Effect" icon="lightbulb" href="https://react.dev/learn/you-might-not-need-an-effect">
+    Learn when to avoid useEffect
+  </Card>
+</CardGroup>

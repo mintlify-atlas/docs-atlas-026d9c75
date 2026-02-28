@@ -1,0 +1,189 @@
+---
+title: 'Practice Projects Overview'
+description: 'Apply your React skills with three comprehensive practice projects that build real-world applications'
+icon: 'code'
+---
+
+## Introduction
+
+The course includes three major practice projects that combine multiple React concepts into complete, functional applications. These projects provide hands-on experience building real-world features and help solidify your understanding of React fundamentals.
+
+<CardGroup cols={3}>
+  <Card title="Project Management App" icon="list-check" href="/projects/project-management">
+    Build a full-featured project and task management application
+  </Card>
+  <Card title="React Quiz" icon="circle-question" href="/projects/react-quiz">
+    Create an interactive quiz app with timers and answer validation
+  </Card>
+  <Card title="Food Order App" icon="utensils" href="/projects/food-order">
+    Develop a complete food ordering system with cart and checkout
+  </Card>
+</CardGroup>
+
+## What You'll Build
+
+Each practice project focuses on different aspects of React development:
+
+<AccordionGroup>
+  <Accordion title="Project Management (Section 9)">
+    **Key Features:**
+    - Create, view, and delete projects
+    - Add and manage tasks per project
+    - Form validation with refs
+    - Modal dialogs using portals
+    - Complex state management
+    
+    **Concepts Covered:**
+    - State management patterns
+    - useRef and forwardRef
+    - React Portals
+    - Component composition
+    - Tailwind CSS styling
+  </Accordion>
+
+  <Accordion title="React Quiz (Section 13)">
+    **Key Features:**
+    - Dynamic question loading
+    - Answer shuffling
+    - Timer-based progression
+    - Answer validation and feedback
+    - Results summary
+    
+    **Concepts Covered:**
+    - useEffect and side effects
+    - Timer management
+    - Effect cleanup functions
+    - Derived state
+    - useCallback optimization
+  </Accordion>
+
+  <Accordion title="Food Order App (Section 18)">
+    **Key Features:**
+    - Meal browsing interface
+    - Shopping cart functionality
+    - Checkout form with validation
+    - HTTP requests to backend
+    - Custom hooks for data fetching
+    
+    **Concepts Covered:**
+    - Context API with useReducer
+    - HTTP requests and loading states
+    - Custom hooks (useHttp)
+    - Form handling
+    - Error handling
+  </Accordion>
+</AccordionGroup>
+
+## Project Structure
+
+All practice projects follow a similar structure:
+
+```bash
+project-folder/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── store/          # Context providers (where applicable)
+│   ├── hooks/          # Custom hooks (where applicable)
+│   ├── App.jsx         # Main application component
+│   └── main.jsx        # Application entry point
+├── public/             # Static assets
+└── package.json        # Dependencies and scripts
+```
+
+## Learning Approach
+
+<Steps>
+  <Step title="Understand the Goal">
+    Each project starts with a clear objective and feature requirements
+  </Step>
+  <Step title="Build Incrementally">
+    Projects are built step-by-step, with each video adding new functionality
+  </Step>
+  <Step title="Apply Concepts">
+    Combine concepts learned in previous sections into working features
+  </Step>
+  <Step title="Refactor and Improve">
+    Iterate on your implementation to improve code quality and structure
+  </Step>
+</Steps>
+
+## Prerequisites
+
+Before starting the practice projects, ensure you understand:
+
+<CardGroup cols={2}>
+  <Card title="React Fundamentals" icon="react">
+    Components, JSX, props, and state
+  </Card>
+  <Card title="Hooks" icon="hook">
+    useState, useEffect, useRef, useContext
+  </Card>
+  <Card title="Event Handling" icon="hand-pointer">
+    User interactions and event handlers
+  </Card>
+  <Card title="Styling" icon="palette">
+    CSS modules or Tailwind CSS
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+Each project includes starter code in the source repository:
+
+<CodeGroup>
+```bash Project Management
+cd "code/09 Practice Project - Project Management/01-starting-project"
+npm install
+npm run dev
+```
+
+```bash React Quiz
+cd "code/13 Demo Project - React Quiz/01-starting-project"
+npm install
+npm run dev
+```
+
+```bash Food Order
+cd "code/18 Practice Project - Food Order/01-starting-project"
+npm install
+npm run dev
+```
+</CodeGroup>
+
+<Note>
+Each project folder contains multiple subfolders representing different stages of completion. Start with `01-starting-project` and refer to later stages if you need help.
+</Note>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Try Before Looking">
+    Attempt to solve challenges on your own before checking the solution videos
+  </Accordion>
+  
+  <Accordion title="Experiment">
+    Modify the code and add your own features to deepen understanding
+  </Accordion>
+  
+  <Accordion title="Debug Actively">
+    Use browser DevTools and console.log to understand how data flows
+  </Accordion>
+  
+  <Accordion title="Compare Code">
+    Review the finished version to see alternative approaches and improvements
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Start Project Management" icon="arrow-right" href="/projects/project-management">
+    Learn state management and refs
+  </Card>
+  <Card title="Start React Quiz" icon="arrow-right" href="/projects/react-quiz">
+    Master useEffect and timers
+  </Card>
+  <Card title="Start Food Order" icon="arrow-right" href="/projects/food-order">
+    Build with Context and HTTP
+  </Card>
+</CardGroup>

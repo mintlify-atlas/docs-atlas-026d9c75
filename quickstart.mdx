@@ -1,80 +1,206 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick start guide
+description: Learn how to access, download, and run React course resources on your local machine
 ---
 
-## Get started in three steps
+## Access the repository
 
-Get your documentation site running locally and make your first customization.
+All course resources are available in the course repository. You can access them in two ways:
 
-### Step 1: Set up your local environment
+<CardGroup cols={2}>
+  <Card title="Clone the repository" icon="git">
+    Get all resources at once with Git
+  </Card>
+  <Card title="Download individually" icon="download">
+    Download specific files or sections as needed
+  </Card>
+</CardGroup>
+
+### Clone the entire repository
+
+Cloning gives you immediate access to all 34 sections of course materials:
+
+```bash
+git clone <repository-url>
+cd react-complete-guide-resources
+```
+
+### Download specific sections
+
+If you prefer to download only what you need, navigate to the specific section folder and download the files or folders you want to work with.
+
+## Running code snapshots
+
+Code snapshots are designed to help you compare your code with the instructor's code from the videos. Here's how to run them:
+
+<Steps>
+  <Step title="Navigate to the snapshot folder">
+    Open your terminal and navigate to the specific code snapshot you want to run:
+    
+    ```bash
+    cd code/"03 React Essentials"/01-starting-project
+    ```
+  </Step>
+  
+  <Step title="Install dependencies">
+    Install the required npm packages:
+    
+    ```bash
+    npm install
+    ```
+    
+    <Note>
+      This step is required for each snapshot you want to run. Dependencies are not shared between snapshots.
+    </Note>
+  </Step>
+  
+  <Step title="Start the development server">
+    Run the development server using Vite:
+    
+    ```bash
+    npm run dev
+    ```
+    
+    The application will typically be available at `http://localhost:5173`
+  </Step>
+  
+  <Step title="Open in your browser">
+    Visit the local URL shown in your terminal to see the application running.
+  </Step>
+</Steps>
+
+## Understanding the project structure
+
+Most React projects in this course use Vite as the build tool. Here's what you'll find in a typical snapshot:
+
+```bash
+├── package.json          # Project dependencies and scripts
+├── vite.config.js        # Vite configuration
+├── index.html            # Entry HTML file
+├── public/               # Static assets
+└── src/
+    ├── main.jsx          # Application entry point
+    ├── App.jsx           # Main App component
+    ├── components/       # React components
+    └── assets/           # Images, styles, etc.
+```
+
+### Key files explained
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+  <Accordion title="package.json">
+    Defines project dependencies and npm scripts. The course projects typically use:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+    ```json
+    {
+      "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+      },
+      "dependencies": {
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
+      }
+    }
+    ```
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+  
+  <Accordion title="src/main.jsx">
+    The entry point that renders your React application:
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+    ```jsx
+    import React from 'react'
+    import ReactDOM from 'react-dom/client'
+    import App from './App.jsx'
+    
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>,
+    )
+    ```
+  </Accordion>
+  
+  <Accordion title="src/App.jsx">
+    Your main application component where most of the React code lives. Starting projects often begin with a simple structure:
+    
+    ```jsx
+    function App() {
+      return (
+        <>
+          <h1 className="my-8 text-center text-5xl font-bold">Hello World</h1>
+        </>
+      );
+    }
+    
+    export default App;
+    ```
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
+## Working with lecture attachments
+
+Lecture attachments contain standalone files mentioned in specific course lectures:
+
+- **JavaScript files** - Helper functions, data files, configuration files
+- **PDF documents** - Reference materials and summaries
+- **ZIP files** - Complete starting projects for sections
+
+Simply download the attachment for the lecture you're watching and use it as instructed in the video.
+
+## Common commands reference
+
+Here are the most frequently used commands when working with course projects:
+
+<CodeGroup>
+```bash Install dependencies
+npm install
+```
+
+```bash Start development server
+npm run dev
+```
+
+```bash Build for production
+npm run build
+```
+
+```bash Preview production build
+npm run preview
+```
+</CodeGroup>
+
+## Troubleshooting
 
 <AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+  <Accordion title="npm install fails">
+    **Solution:** Ensure you have Node.js version 14 or higher installed. Check your version:
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
+    ```bash
+    node --version
+    ```
+    
+    If needed, update Node.js from [nodejs.org](https://nodejs.org)
+  </Accordion>
+  
+  <Accordion title="Port already in use">
+    **Solution:** If port 5173 is already in use, Vite will automatically use the next available port. Check your terminal output for the correct URL.
+  </Accordion>
+  
+  <Accordion title="Module not found errors">
+    **Solution:** Make sure you've run `npm install` in the correct directory. Each snapshot has its own dependencies.
+  </Accordion>
+  
+  <Accordion title="Code doesn't match the video">
+    **Solution:** Code snapshots are taken directly from course recordings. Make sure you're using the snapshot that corresponds to the specific lecture you're watching.
   </Accordion>
 </AccordionGroup>
 
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+<Warning>
+  If you encounter issues not covered here, please post in the course Q&A section with details about your problem, including error messages and your Node.js version.
+</Warning>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+Now that you know how to run the code, explore the [repository structure](/repository-structure) to understand how all 34 sections are organized and find the resources you need.

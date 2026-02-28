@@ -1,0 +1,597 @@
+---
+title: TypeScript with React
+description: Learn how to use TypeScript with React for type-safe component development
+---
+
+## Overview
+
+TypeScript adds **static typing** to JavaScript, helping you catch errors early and improve code quality. This guide covers using TypeScript with React components.
+
+<Info>
+TypeScript provides autocomplete, type checking, and better refactoring support in your React projects.
+</Info>
+
+## TypeScript Basics
+
+### Primitive Types
+
+TypeScript includes basic types for JavaScript primitives:
+
+```typescript
+// Primitives
+let age: number;
+age = 12;
+
+let userName: string;
+userName = 'Max';
+
+let isInstructor: boolean;
+isInstructor = true;
+```
+
+### Arrays and Objects
+
+```typescript
+// Array of strings
+let hobbies: string[];
+hobbies = ['Sports', 'Cooking'];
+
+// Object type
+let person: {
+  name: string;
+  age: number;
+};
+
+person = {
+  name: 'Max',
+  age: 32
+};
+
+// Array of objects
+let people: {
+  name: string;
+  age: number;
+}[];
+```
+
+<Tip>
+TypeScript can often **infer types** automatically, so you don't always need to specify them explicitly.
+</Tip>
+
+## Union Types
+
+Union types allow a variable to hold multiple types:
+
+```typescript
+let userName: string | string[];
+userName = 'Max';  // OK
+userName = ['Max', 'Anna'];  // Also OK
+
+let course: string | number = 'React - The Complete Guide';
+course = 12341;  // OK
+```
+
+<CardGroup cols={2}>
+
+<Card title="Flexibility" icon="arrows-split">
+Union types provide flexibility while maintaining type safety.
+</Card>
+
+<Card title="Type Guards" icon="shield">
+TypeScript can narrow types based on runtime checks.
+</Card>
+
+</CardGroup>
+
+## Type Aliases
+
+Create reusable type definitions with type aliases:
+
+```typescript
+type Person = {
+  name: string;
+  age: number;
+};
+
+let person: Person;
+person = {
+  name: 'Max',
+  age: 32
+};
+
+let people: Person[];
+```
+
+<Warning>
+Type aliases improve code readability and make complex types easier to maintain.
+</Warning>
+
+## Generics
+
+Generics enable type-safe reusable functions:
+
+```typescript
+function insertAtBeginning<T>(array: T[], value: T) {
+  const newArray = [value, ...array];
+  return newArray;
+}
+
+const demoArray = [1, 2, 3];
+const updatedArray = insertAtBeginning(demoArray, -1); // [-1, 1, 2, 3]
+
+const stringArray = insertAtBeginning(['a', 'b', 'c'], 'd');
+// TypeScript knows this is string[]
+```
+
+<AccordionGroup>
+
+<Accordion title="Why use generics?">
+Generics provide:
+- Type safety without sacrificing flexibility
+- Better autocomplete and IntelliSense
+- Compile-time error detection
+- Reusable, type-safe functions
+</Accordion>
+
+<Accordion title="When to use generics?">
+Use generics when:
+- Creating reusable utility functions
+- Working with arrays or collections
+- Building components that work with various data types
+- Defining function or component props that vary
+</Accordion>
+
+</AccordionGroup>
+
+## React Components with TypeScript
+
+### Typing Props
+
+Define prop types using TypeScript interfaces or inline types:
+
+<CodeGroup>
+
+```tsx Simple Props
+import React from 'react';
+
+const Todos: React.FC<{ items: string[] }> = (props) => {
+  return (
+    <ul>
+      {props.items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+};
+
+export default Todos;
+```
+
+```tsx Function Props
+const TodoItem: React.FC<{ 
+  text: string;
+  onRemove: () => void;
+}> = (props) => {
+  return (
+    <li onClick={props.onRemove}>
+      {props.text}
+    </li>
+  );
+};
+
+export default TodoItem;
+```
+
+</CodeGroup>
+
+<Steps>
+
+<Step title="Define the component type">
+Use `React.FC<PropsType>` to define a functional component with typed props.
+</Step>
+
+<Step title="Specify prop types">
+Provide an object type or interface describing the component's props.
+</Step>
+
+<Step title="Access props with autocomplete">
+TypeScript provides IntelliSense for all prop names and types.
+</Step>
+
+</Steps>
+
+### Using Custom Classes
+
+Create model classes with TypeScript:
+
+<CodeGroup>
+
+```typescript Model Class
+class Todo {
+  id: string;
+  text: string;
+
+  constructor(todoText: string) {
+    this.text = todoText;
+    this.id = new Date().toISOString();
+  }
+}
+
+export default Todo;
+```
+
+```tsx Using the Model
+import React from 'react';
+import TodoItem from './TodoItem';
+import Todo from '../models/todo';
+
+const Todos: React.FC<{ items: Todo[] }> = (props) => {
+  return (
+    <ul>
+      {props.items.map((item) => (
+        <TodoItem key={item.id} text={item.text} />
+      ))}
+    </ul>
+  );
+};
+
+export default Todos;
+```
+
+</CodeGroup>
+
+## Working with Refs
+
+Type refs using generic parameters:
+
+```tsx
+import { useRef } from 'react';
+
+const NewTodo: React.FC = () => {
+  const todoTextInputRef = useRef<HTMLInputElement>(null);
+
+  const submitHandler = (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    // Non-null assertion operator (!)
+    const enteredText = todoTextInputRef.current!.value;
+    
+    if (enteredText.trim().length === 0) {
+      return;
+    }
+  };
+
+  return (
+    <form onSubmit={submitHandler}>
+      <input type='text' ref={todoTextInputRef} />
+      <button>Add Todo</button>
+    </form>
+  );
+};
+```
+
+<Warning>
+The `!` operator tells TypeScript that the value will definitely exist. Use carefully to avoid runtime errors.
+</Warning>
+
+## Typing State
+
+Use generics to type `useState`:
+
+```tsx
+import { useState } from 'react';
+import Todo from './models/todo';
+
+function App() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+
+  const addTodoHandler = (todoText: string) => {
+    const newTodo = new Todo(todoText);
+    
+    setTodos((prevTodos) => {
+      return prevTodos.concat(newTodo);
+    });
+  };
+
+  return (
+    <div>
+      <NewTodo onAddTodo={addTodoHandler} />
+      <Todos items={todos} />
+    </div>
+  );
+}
+```
+
+<CardGroup cols={2}>
+
+<Card title="Type Inference" icon="wand-magic-sparkles">
+TypeScript can often infer state types from initial values.
+</Card>
+
+<Card title="Generic Types" icon="brackets-curly">
+Use generics for complex state like arrays of objects.
+</Card>
+
+</CardGroup>
+
+## Context API with TypeScript
+
+Type Context using interfaces:
+
+```tsx
+import React, { useState } from 'react';
+import Todo from '../models/todo';
+
+type TodosContextObj = {
+  items: Todo[];
+  addTodo: (text: string) => void;
+  removeTodo: (id: string) => void;
+};
+
+export const TodosContext = React.createContext<TodosContextObj>({
+  items: [],
+  addTodo: () => {},
+  removeTodo: (id: string) => {},
+});
+
+const TodosContextProvider: React.FC<{ children: React.ReactNode }> = (props) => {
+  const [todos, setTodos] = useState<Todo[]>([]);
+
+  const addTodoHandler = (todoText: string) => {
+    const newTodo = new Todo(todoText);
+    setTodos((prevTodos) => prevTodos.concat(newTodo));
+  };
+
+  const removeTodoHandler = (todoId: string) => {
+    setTodos((prevTodos) => prevTodos.filter(todo => todo.id !== todoId));
+  };
+
+  const contextValue: TodosContextObj = {
+    items: todos,
+    addTodo: addTodoHandler,
+    removeTodo: removeTodoHandler,
+  };
+
+  return (
+    <TodosContext.Provider value={contextValue}>
+      {props.children}
+    </TodosContext.Provider>
+  );
+};
+
+export default TodosContextProvider;
+```
+
+<Steps>
+
+<Step title="Define context type">
+Create a type describing the context value shape.
+</Step>
+
+<Step title="Create typed context">
+Pass the type as a generic parameter to `createContext()`.
+</Step>
+
+<Step title="Use in components">
+TypeScript now provides autocomplete for context values.
+</Step>
+
+</Steps>
+
+## Event Types
+
+Common React event types in TypeScript:
+
+<CardGroup cols={2}>
+
+<Card title="Form Events" icon="file-lines">
+```tsx
+const handleSubmit = (
+  event: React.FormEvent
+) => {
+  event.preventDefault();
+};
+```
+</Card>
+
+<Card title="Click Events" icon="mouse-pointer">
+```tsx
+const handleClick = (
+  event: React.MouseEvent
+) => {
+  console.log('Clicked!');
+};
+```
+</Card>
+
+<Card title="Change Events" icon="pen">
+```tsx
+const handleChange = (
+  event: React.ChangeEvent<HTMLInputElement>
+) => {
+  setValue(event.target.value);
+};
+```
+</Card>
+
+<Card title="Keyboard Events" icon="keyboard">
+```tsx
+const handleKeyPress = (
+  event: React.KeyboardEvent
+) => {
+  if (event.key === 'Enter') {
+    submit();
+  }
+};
+```
+</Card>
+
+</CardGroup>
+
+## Best Practices
+
+<AccordionGroup>
+
+<Accordion title="Use type inference when possible">
+Let TypeScript infer types from initial values:
+
+```typescript
+// Type is inferred as number
+const count = 0;
+
+// Explicit type needed for empty arrays
+const items: string[] = [];
+```
+</Accordion>
+
+<Accordion title="Prefer interfaces for objects">
+Use interfaces for object shapes, especially for props:
+
+```typescript
+interface TodoProps {
+  id: string;
+  text: string;
+  onRemove: (id: string) => void;
+}
+
+const Todo: React.FC<TodoProps> = (props) => { /* ... */ };
+```
+</Accordion>
+
+<Accordion title="Enable strict mode">
+Use strict TypeScript settings in `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  }
+}
+```
+</Accordion>
+
+<Accordion title="Avoid using 'any'">
+Instead of `any`, use:
+- `unknown` for truly unknown types
+- Generics for flexible but type-safe code
+- Union types for multiple specific types
+
+```typescript
+// Bad
+function process(data: any) { }
+
+// Good
+function process<T>(data: T) { }
+```
+</Accordion>
+
+</AccordionGroup>
+
+## Common Patterns
+
+<Tabs>
+  <Tab title="Props with Children">
+    ```tsx
+    interface ContainerProps {
+      children: React.ReactNode;
+      title: string;
+    }
+    
+    const Container: React.FC<ContainerProps> = ({ children, title }) => {
+      return (
+        <div>
+          <h2>{title}</h2>
+          {children}
+        </div>
+      );
+    };
+    ```
+  </Tab>
+  <Tab title="Optional Props">
+    ```tsx
+    interface ButtonProps {
+      label: string;
+      onClick: () => void;
+      disabled?: boolean;  // Optional
+    }
+    
+    const Button: React.FC<ButtonProps> = ({ 
+      label, 
+      onClick, 
+      disabled = false 
+    }) => {
+      return (
+        <button onClick={onClick} disabled={disabled}>
+          {label}
+        </button>
+      );
+    };
+    ```
+  </Tab>
+  <Tab title="Default Props">
+    ```tsx
+    interface CardProps {
+      title: string;
+      variant?: 'primary' | 'secondary';
+    }
+    
+    const Card: React.FC<CardProps> = ({ 
+      title, 
+      variant = 'primary' 
+    }) => {
+      return <div className={variant}>{title}</div>;
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## TypeScript + React Cheat Sheet
+
+<CodeGroup>
+
+```tsx Component Props
+interface MyComponentProps {
+  name: string;
+  age: number;
+  onSave: (name: string) => void;
+}
+
+const MyComponent: React.FC<MyComponentProps> = (props) => {
+  // Component implementation
+};
+```
+
+```tsx State
+const [count, setCount] = useState<number>(0);
+const [user, setUser] = useState<User | null>(null);
+const [items, setItems] = useState<string[]>([]);
+```
+
+```tsx Refs
+const inputRef = useRef<HTMLInputElement>(null);
+const divRef = useRef<HTMLDivElement>(null);
+```
+
+```tsx Events
+const handleSubmit = (e: React.FormEvent) => {};
+const handleClick = (e: React.MouseEvent) => {};
+const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {};
+```
+
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="Testing" icon="vial" href="/testing/react-testing">
+Learn how to test React components with TypeScript
+</Card>
+
+<Card title="Advanced Types" icon="graduation-cap">
+Explore utility types, conditional types, and mapped types
+</Card>
+
+</CardGroup>

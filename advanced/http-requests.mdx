@@ -1,0 +1,420 @@
+---
+title: 'HTTP Requests'
+description: 'Learn how to fetch data, handle loading states, errors, and perform CRUD operations'
+icon: 'globe'
+---
+
+## Fetching Data in React
+
+HTTP requests in React are typically handled with the Fetch API and useEffect hook for side effects.
+
+## Basic Data Fetching
+
+Here's a complete example showing loading states, error handling, and data management:
+
+```jsx
+import { useState, useEffect } from 'react';
+import Places from './Places.jsx';
+import Error from './Error.jsx';
+
+export default function AvailablePlaces({ onSelectPlace }) {
+  const [isFetching, setIsFetching] = useState(false);
+  const [availablePlaces, setAvailablePlaces] = useState([]);
+  const [error, setError] = useState();
+
+  useEffect(() => {
+    async function fetchPlaces() {
+      setIsFetching(true);
+
+      try {
+        const response = await fetch('http://localhost:3000/places');
+        const resData = await response.json();
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch places');
+        }
+
+        setAvailablePlaces(resData.places);
+      } catch (error) {
+        setError({
+          message:
+            error.message || 'Could not fetch places, please try again later.',
+        });
+      }
+
+      setIsFetching(false);
+    }
+
+    fetchPlaces();
+  }, []);
+
+  if (error) {
+    return <Error title="An error occurred!" message={error.message} />;
+  }
+
+  return (
+    <Places
+      title="Available Places"
+      places={availablePlaces}
+      isLoading={isFetching}
+      loadingText="Fetching place data..."
+      fallbackText="No places available."
+      onSelectPlace={onSelectPlace}
+    />
+  );
+}
+```
+
+<Note>
+Always use `useEffect` for HTTP requests to avoid infinite re-render loops.
+</Note>
+
+## Using async/await
+
+The async/await syntax makes asynchronous code more readable:
+
+<CodeGroup>
+```javascript async/await (Recommended)
+const response = await fetch('http://localhost:3000/places');
+const data = await response.json();
+
+if (!response.ok) {
+  throw new Error('Failed to fetch data');
+}
+```
+
+```javascript Promises
+fetch('http://localhost:3000/places')
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Failed to fetch data');
+    }
+    return response.json();
+  })
+  .then(data => {
+    setAvailablePlaces(data.places);
+  })
+  .catch(error => {
+    setError(error);
+  });
+```
+</CodeGroup>
+
+## Managing Loading States
+
+Always provide feedback while data is loading:
+
+```jsx
+function DataComponent() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      
+      try {
+        const response = await fetch('/api/data');
+        const result = await response.json();
+        setData(result);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return <p>Loading...</p>;
+  }
+
+  return <div>{/* Render data */}</div>;
+}
+```
+
+<Tip>
+Use the `finally` block to ensure loading state is always reset, even if an error occurs.
+</Tip>
+
+## Error Handling
+
+Handle both network errors and HTTP errors:
+
+```jsx
+const [error, setError] = useState(null);
+
+useEffect(() => {
+  async function fetchData() {
+    try {
+      const response = await fetch('/api/data');
+      
+      // Check if the response was successful
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setData(data);
+    } catch (error) {
+      // Catches both network errors and thrown errors
+      setError({
+        message: error.message || 'Something went wrong!'
+      });
+    }
+  }
+
+  fetchData();
+}, []);
+
+if (error) {
+  return (
+    <div className="error">
+      <h2>An error occurred!</h2>
+      <p>{error.message}</p>
+    </div>
+  );
+}
+```
+
+## Sending Data (POST Requests)
+
+Send data to your backend with POST requests:
+
+```jsx
+async function addPlace(place) {
+  try {
+    const response = await fetch('http://localhost:3000/user-places', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ placeId: place.id })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to add place');
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error adding place:', error);
+    throw error;
+  }
+}
+```
+
+## Optimistic Updates
+
+Update the UI immediately and handle errors if the request fails:
+
+```jsx
+function handleAddPlace(place) {
+  // Update UI immediately (optimistic update)
+  setUserPlaces(prevPlaces => {
+    if (!prevPlaces) {
+      prevPlaces = [];
+    }
+    if (prevPlaces.some(p => p.id === place.id)) {
+      return prevPlaces;
+    }
+    return [place, ...prevPlaces];
+  });
+
+  // Send request in the background
+  fetch('http://localhost:3000/user-places', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ placeId: place.id })
+  }).catch(error => {
+    // Revert on error
+    setUserPlaces(prevPlaces => 
+      prevPlaces.filter(p => p.id !== place.id)
+    );
+    setError({
+      message: error.message || 'Failed to add place.'
+    });
+  });
+}
+```
+
+<Warning>
+With optimistic updates, always handle errors and revert changes if the request fails.
+</Warning>
+
+## DELETE Requests
+
+Remove data from your backend:
+
+```jsx
+async function handleRemovePlace(placeId) {
+  setUserPlaces(prevPlaces => 
+    prevPlaces.filter(place => place.id !== placeId)
+  );
+
+  try {
+    const response = await fetch(
+      `http://localhost:3000/user-places/${placeId}`,
+      { method: 'DELETE' }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to delete place');
+    }
+  } catch (error) {
+    // Restore the place on error
+    setUserPlaces(prevPlaces => [...prevPlaces, deletedPlace]);
+    setError({ message: 'Failed to delete place.' });
+  }
+}
+```
+
+## Extracting HTTP Logic
+
+Create reusable HTTP functions:
+
+<CodeGroup>
+```javascript http.js
+export async function fetchAvailablePlaces() {
+  const response = await fetch('http://localhost:3000/places');
+  const resData = await response.json();
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch places');
+  }
+
+  return resData.places;
+}
+
+export async function updateUserPlaces(places) {
+  const response = await fetch('http://localhost:3000/user-places', {
+    method: 'PUT',
+    body: JSON.stringify({ places }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  const resData = await response.json();
+
+  if (!response.ok) {
+    throw new Error('Failed to update user data.');
+  }
+
+  return resData.message;
+}
+```
+
+```jsx Usage
+import { fetchAvailablePlaces } from './http.js';
+
+useEffect(() => {
+  async function loadPlaces() {
+    setIsFetching(true);
+    try {
+      const places = await fetchAvailablePlaces();
+      setAvailablePlaces(places);
+    } catch (error) {
+      setError({ message: error.message });
+    }
+    setIsFetching(false);
+  }
+
+  loadPlaces();
+}, []);
+```
+</CodeGroup>
+
+## Custom useFetch Hook
+
+Create a reusable hook for data fetching:
+
+```javascript
+import { useEffect, useState } from 'react';
+
+export function useFetch(fetchFn, initialValue) {
+  const [isFetching, setIsFetching] = useState();
+  const [error, setError] = useState();
+  const [fetchedData, setFetchedData] = useState(initialValue);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsFetching(true);
+      try {
+        const data = await fetchFn();
+        setFetchedData(data);
+      } catch (error) {
+        setError({ message: error.message || 'Failed to fetch data.' });
+      }
+
+      setIsFetching(false);
+    }
+
+    fetchData();
+  }, [fetchFn]);
+
+  return {
+    isFetching,
+    fetchedData,
+    error
+  }
+}
+```
+
+### Using the Hook
+
+```jsx
+import { useFetch } from './hooks/useFetch';
+import { fetchAvailablePlaces } from './http';
+
+function AvailablePlaces() {
+  const {
+    isFetching,
+    fetchedData: availablePlaces,
+    error
+  } = useFetch(fetchAvailablePlaces, []);
+
+  if (error) {
+    return <Error title="Error" message={error.message} />;
+  }
+
+  return (
+    <Places
+      places={availablePlaces}
+      isLoading={isFetching}
+      loadingText="Loading places..."
+    />
+  );
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always handle errors">
+    Network requests can fail. Always wrap fetch calls in try/catch blocks and provide user feedback.
+  </Accordion>
+  
+  <Accordion title="Show loading states">
+    Keep users informed while data is loading to prevent confusion.
+  </Accordion>
+  
+  <Accordion title="Check response.ok">
+    The fetch API doesn't reject on HTTP errors (like 404). Always check `response.ok`.
+  </Accordion>
+  
+  <Accordion title="Use useEffect properly">
+    Include all dependencies in the dependency array to avoid stale closures.
+  </Accordion>
+  
+  <Accordion title="Clean up on unmount">
+    Cancel ongoing requests when components unmount to prevent memory leaks.
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+**Source Code**: Section 15 - HTTP Requests
+</Info>

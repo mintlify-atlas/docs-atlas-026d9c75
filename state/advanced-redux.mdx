@@ -1,0 +1,843 @@
+---
+title: Advanced Redux Patterns
+description: Handle async logic, side effects, and complex data flows in Redux with thunks and best practices
+---
+
+## Overview
+
+Learn advanced Redux patterns for handling asynchronous operations, side effects, and complex state updates. Master Redux Thunks for API calls, optimistic updates, and advanced data flow patterns.
+
+<CardGroup cols={2}>
+  <Card title="Redux Thunks" icon="clock">
+    Handle async logic in Redux
+  </Card>
+  <Card title="Side Effects" icon="bolt">
+    Manage API calls and data fetching
+  </Card>
+  <Card title="Action Creators" icon="code">
+    Create complex action logic
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Handle loading and error states
+  </Card>
+</CardGroup>
+
+---
+
+## The Challenge: Async Logic
+
+Reducers must be pure, synchronous functions. But real apps need to:
+
+<AccordionGroup>
+  <Accordion title="Common Async Operations">
+    - Fetch data from APIs
+    - Save data to backend
+    - Wait for user input
+    - Perform calculations with delays
+    - Handle WebSocket messages
+  </Accordion>
+  
+  <Accordion title="Where to Put Async Code?">
+    Two main approaches:
+    
+    1. **Inside Components** - useEffect with fetch
+    2. **Inside Action Creators** - Redux Thunks
+    
+    Thunks keep components clean and logic testable.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  **Reducers Must Stay Pure:**
+  
+  Never do this in a reducer:
+  - Fetch data
+  - Call setTimeout/setInterval
+  - Generate random values
+  - Modify variables outside reducer
+  
+  These operations must happen elsewhere.
+</Warning>
+
+---
+
+## Redux Thunk Basics
+
+A thunk is a function that returns another function, allowing delayed or async logic.
+
+<Tabs>
+  <Tab title="Regular Action Creator">
+    ```jsx
+    // Returns action object immediately
+    export const increment = () => {
+      return { type: 'counter/increment' };
+    };
+    
+    // Use it
+    dispatch(increment());
+    ```
+  </Tab>
+  
+  <Tab title="Thunk Action Creator">
+    ```jsx
+    // Returns function that receives dispatch
+    export const incrementAsync = () => {
+      return (dispatch) => {
+        setTimeout(() => {
+          dispatch({ type: 'counter/increment' });
+        }, 1000);
+      };
+    };
+    
+    // Use it (Redux handles the function)
+    dispatch(incrementAsync());
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  **How Thunks Work:**
+  
+  1. You dispatch a thunk (function)
+  2. Redux middleware intercepts it
+  3. Middleware calls the function with `dispatch` and `getState`
+  4. Function performs async work
+  5. Function dispatches regular actions when ready
+</Info>
+
+---
+
+## Complete Example: Shopping Cart
+
+Here's a real implementation from the course showing async data fetching and saving.
+
+### Cart Slice
+
+```jsx cart-slice.js
+import { createSlice } from '@reduxjs/toolkit';
+
+const cartSlice = createSlice({
+  name: 'cart',
+  initialState: {
+    items: [],
+    totalQuantity: 0,
+    changed: false,
+  },
+  reducers: {
+    replaceCart(state, action) {
+      state.totalQuantity = action.payload.totalQuantity;
+      state.items = action.payload.items;
+    },
+    addItemToCart(state, action) {
+      const newItem = action.payload;
+      const existingItem = state.items.find((item) => item.id === newItem.id);
+      state.totalQuantity++;
+      state.changed = true;
+      
+      if (!existingItem) {
+        state.items.push({
+          id: newItem.id,
+          price: newItem.price,
+          quantity: 1,
+          totalPrice: newItem.price,
+          name: newItem.title,
+        });
+      } else {
+        existingItem.quantity++;
+        existingItem.totalPrice = existingItem.totalPrice + newItem.price;
+      }
+    },
+    removeItemFromCart(state, action) {
+      const id = action.payload;
+      const existingItem = state.items.find((item) => item.id === id);
+      state.totalQuantity--;
+      state.changed = true;
+      
+      if (existingItem.quantity === 1) {
+        state.items = state.items.filter((item) => item.id !== id);
+      } else {
+        existingItem.quantity--;
+        existingItem.totalPrice = existingItem.totalPrice - existingItem.price;
+      }
+    },
+  },
+});
+
+export const cartActions = cartSlice.actions;
+export default cartSlice;
+```
+
+### Async Action Creators (Thunks)
+
+```jsx cart-actions.js
+import { uiActions } from './ui-slice';
+import { cartActions } from './cart-slice';
+
+// Thunk to fetch cart data from backend
+export const fetchCartData = () => {
+  return async (dispatch) => {
+    const fetchData = async () => {
+      const response = await fetch(
+        'https://react-http-6b4a6.firebaseio.com/cart.json'
+      );
+
+      if (!response.ok) {
+        throw new Error('Could not fetch cart data!');
+      }
+
+      const data = await response.json();
+      return data;
+    };
+
+    try {
+      const cartData = await fetchData();
+      dispatch(
+        cartActions.replaceCart({
+          items: cartData.items || [],
+          totalQuantity: cartData.totalQuantity,
+        })
+      );
+    } catch (error) {
+      dispatch(
+        uiActions.showNotification({
+          status: 'error',
+          title: 'Error!',
+          message: 'Fetching cart data failed!',
+        })
+      );
+    }
+  };
+};
+
+// Thunk to send cart data to backend
+export const sendCartData = (cart) => {
+  return async (dispatch) => {
+    dispatch(
+      uiActions.showNotification({
+        status: 'pending',
+        title: 'Sending...',
+        message: 'Sending cart data!',
+      })
+    );
+
+    const sendRequest = async () => {
+      const response = await fetch(
+        'https://react-http-6b4a6.firebaseio.com/cart.json',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            items: cart.items,
+            totalQuantity: cart.totalQuantity,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Sending cart data failed.');
+      }
+    };
+
+    try {
+      await sendRequest();
+
+      dispatch(
+        uiActions.showNotification({
+          status: 'success',
+          title: 'Success!',
+          message: 'Sent cart data successfully!',
+        })
+      );
+    } catch (error) {
+      dispatch(
+        uiActions.showNotification({
+          status: 'error',
+          title: 'Error!',
+          message: 'Sending cart data failed!',
+        })
+      );
+    }
+  };
+};
+```
+
+### Using Thunks in Components
+
+```jsx App.js
+import { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchCartData, sendCartData } from './store/cart-actions';
+
+let isInitial = true;
+
+function App() {
+  const dispatch = useDispatch();
+  const cart = useSelector((state) => state.cart);
+  const notification = useSelector((state) => state.ui.notification);
+
+  // Fetch cart data on mount
+  useEffect(() => {
+    dispatch(fetchCartData());
+  }, [dispatch]);
+
+  // Send cart data whenever it changes
+  useEffect(() => {
+    if (isInitial) {
+      isInitial = false;
+      return;
+    }
+
+    if (cart.changed) {
+      dispatch(sendCartData(cart));
+    }
+  }, [cart, dispatch]);
+
+  return (
+    <>
+      {notification && (
+        <Notification
+          status={notification.status}
+          title={notification.title}
+          message={notification.message}
+        />
+      )}
+      <Layout>
+        <Cart />
+        <Products />
+      </Layout>
+    </>
+  );
+}
+```
+
+---
+
+## Thunk Patterns
+
+<Tabs>
+  <Tab title="Basic Thunk">
+    ```jsx
+    export const simpleThunk = () => {
+      return (dispatch) => {
+        // Perform sync or async work
+        dispatch(someAction());
+      };
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Async Thunk">
+    ```jsx
+    export const asyncThunk = () => {
+      return async (dispatch) => {
+        const response = await fetch('/api/data');
+        const data = await response.json();
+        dispatch(setData(data));
+      };
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Thunk with getState">
+    ```jsx
+    export const conditionalThunk = () => {
+      return (dispatch, getState) => {
+        const state = getState();
+        
+        if (state.user.isAuthenticated) {
+          dispatch(fetchUserData());
+        }
+      };
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Thunk with Parameters">
+    ```jsx
+    export const fetchUser = (userId) => {
+      return async (dispatch) => {
+        const response = await fetch(`/api/users/${userId}`);
+        const data = await response.json();
+        dispatch(setUser(data));
+      };
+    };
+    
+    // Use it
+    dispatch(fetchUser(123));
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Error Handling
+
+Handle errors gracefully in thunks:
+
+<CodeGroup>
+```jsx With Try-Catch
+export const fetchData = () => {
+  return async (dispatch) => {
+    dispatch(setLoading(true));
+    
+    try {
+      const response = await fetch('/api/data');
+      
+      if (!response.ok) {
+        throw new Error('Request failed');
+      }
+      
+      const data = await response.json();
+      dispatch(setData(data));
+      dispatch(setError(null));
+    } catch (error) {
+      dispatch(setError(error.message));
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+};
+```
+
+```jsx Helper Function Pattern
+export const fetchData = () => {
+  return async (dispatch) => {
+    const fetchRequest = async () => {
+      const response = await fetch('/api/data');
+      
+      if (!response.ok) {
+        throw new Error('Request failed');
+      }
+      
+      return await response.json();
+    };
+    
+    try {
+      const data = await fetchRequest();
+      dispatch(setData(data));
+    } catch (error) {
+      dispatch(setError(error.message));
+    }
+  };
+};
+```
+</CodeGroup>
+
+<Info>
+  **Error Handling Best Practices:**
+  - Always catch errors in thunks
+  - Dispatch error actions to update UI
+  - Include helpful error messages
+  - Log errors for debugging
+  - Show user-friendly messages
+</Info>
+
+---
+
+## Loading States and UI Feedback
+
+Manage loading and notification states:
+
+```jsx ui-slice.js
+import { createSlice } from '@reduxjs/toolkit';
+
+const uiSlice = createSlice({
+  name: 'ui',
+  initialState: {
+    notification: null,
+  },
+  reducers: {
+    showNotification(state, action) {
+      state.notification = {
+        status: action.payload.status, // 'pending' | 'success' | 'error'
+        title: action.payload.title,
+        message: action.payload.message,
+      };
+    },
+    hideNotification(state) {
+      state.notification = null;
+    },
+  },
+});
+
+export const uiActions = uiSlice.actions;
+export default uiSlice;
+```
+
+### Notification Component
+
+```jsx Notification.js
+const Notification = ({ status, title, message }) => {
+  let specialClasses = '';
+
+  if (status === 'error') {
+    specialClasses = 'error';
+  }
+  if (status === 'success') {
+    specialClasses = 'success';
+  }
+
+  const cssClasses = `notification ${specialClasses}`;
+
+  return (
+    <section className={cssClasses}>
+      <h2>{title}</h2>
+      <p>{message}</p>
+    </section>
+  );
+};
+```
+
+---
+
+## Optimistic Updates
+
+Update UI immediately, then sync with backend:
+
+```jsx
+export const addItemOptimistic = (item) => {
+  return async (dispatch) => {
+    // 1. Update UI immediately
+    dispatch(cartActions.addItemToCart(item));
+    
+    try {
+      // 2. Send to backend
+      await fetch('/api/cart', {
+        method: 'POST',
+        body: JSON.stringify(item),
+      });
+    } catch (error) {
+      // 3. Revert on error
+      dispatch(cartActions.removeItemFromCart(item.id));
+      dispatch(uiActions.showNotification({
+        status: 'error',
+        title: 'Error!',
+        message: 'Could not add item.',
+      }));
+    }
+  };
+};
+```
+
+<Tip>
+  **When to Use Optimistic Updates:**
+  - High probability of success
+  - Fast user feedback needed
+  - Easy to revert on error
+  
+  **When NOT to Use:**
+  - Critical operations (payments)
+  - Complex error scenarios
+  - Difficult to revert changes
+</Tip>
+
+---
+
+## Redux Thunk vs useEffect
+
+<Tabs>
+  <Tab title="useEffect Approach">
+    ```jsx
+    function Component() {
+      const [data, setData] = useState(null);
+      
+      useEffect(() => {
+        async function fetchData() {
+          const response = await fetch('/api/data');
+          const result = await response.json();
+          setData(result);
+        }
+        
+        fetchData();
+      }, []);
+      
+      // Component code
+    }
+    ```
+    
+    **Pros:**
+    - Simple for component-specific data
+    - Easy to understand
+    
+    **Cons:**
+    - Logic tied to component
+    - Hard to reuse
+    - Difficult to test
+  </Tab>
+  
+  <Tab title="Redux Thunk Approach">
+    ```jsx
+    // cart-actions.js
+    export const fetchData = () => {
+      return async (dispatch) => {
+        const response = await fetch('/api/data');
+        const result = await response.json();
+        dispatch(setData(result));
+      };
+    };
+    
+    // Component.js
+    function Component() {
+      const dispatch = useDispatch();
+      
+      useEffect(() => {
+        dispatch(fetchData());
+      }, [dispatch]);
+      
+      // Component code
+    }
+    ```
+    
+    **Pros:**
+    - Reusable logic
+    - Easy to test
+    - Centralized state management
+    
+    **Cons:**
+    - More boilerplate
+    - Requires understanding thunks
+  </Tab>
+</Tabs>
+
+---
+
+## Avoiding Infinite Loops
+
+Prevent sending data on initial load:
+
+```jsx
+let isInitial = true;
+
+function App() {
+  const cart = useSelector((state) => state.cart);
+
+  useEffect(() => {
+    // Skip first run (initial cart load)
+    if (isInitial) {
+      isInitial = false;
+      return;
+    }
+
+    // Only send if cart actually changed
+    if (cart.changed) {
+      dispatch(sendCartData(cart));
+    }
+  }, [cart, dispatch]);
+}
+```
+
+<Warning>
+  **Common Pitfalls:**
+  - Sending data on initial load
+  - Fetching triggering another fetch
+  - Incorrect dependency arrays
+  - Missing cleanup functions
+</Warning>
+
+---
+
+## Advanced Patterns
+
+<AccordionGroup>
+  <Accordion title="Chaining Thunks">
+    ```jsx
+    export const loginUser = (credentials) => {
+      return async (dispatch) => {
+        // 1. Login
+        const authResponse = await fetch('/api/login', {
+          method: 'POST',
+          body: JSON.stringify(credentials),
+        });
+        const authData = await authResponse.json();
+        
+        dispatch(setAuthToken(authData.token));
+        
+        // 2. Fetch user data
+        dispatch(fetchUserData());
+        
+        // 3. Fetch user preferences
+        dispatch(fetchUserPreferences());
+      };
+    };
+    ```
+  </Accordion>
+  
+  <Accordion title="Conditional Dispatching">
+    ```jsx
+    export const fetchIfNeeded = () => {
+      return (dispatch, getState) => {
+        const state = getState();
+        
+        // Only fetch if data is stale
+        if (!state.data.items.length || state.data.isStale) {
+          dispatch(fetchData());
+        }
+      };
+    };
+    ```
+  </Accordion>
+  
+  <Accordion title="Debouncing API Calls">
+    ```jsx
+    let timeoutId;
+    
+    export const searchDebounced = (query) => {
+      return (dispatch) => {
+        // Clear previous timeout
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        
+        // Set new timeout
+        timeoutId = setTimeout(() => {
+          dispatch(fetchSearchResults(query));
+        }, 500);
+      };
+    };
+    ```
+  </Accordion>
+  
+  <Accordion title="Canceling Requests">
+    ```jsx
+    let controller;
+    
+    export const fetchWithCancel = () => {
+      return async (dispatch) => {
+        // Cancel previous request
+        if (controller) {
+          controller.abort();
+        }
+        
+        // Create new controller
+        controller = new AbortController();
+        
+        try {
+          const response = await fetch('/api/data', {
+            signal: controller.signal,
+          });
+          const data = await response.json();
+          dispatch(setData(data));
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            dispatch(setError(error.message));
+          }
+        }
+      };
+    };
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Testing Thunks
+
+<CodeGroup>
+```jsx Basic Test
+import configureMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { fetchData } from './cart-actions';
+
+const mockStore = configureMockStore([thunk]);
+
+test('fetchData dispatches correct actions', async () => {
+  const store = mockStore({});
+  
+  await store.dispatch(fetchData());
+  
+  const actions = store.getActions();
+  expect(actions[0]).toEqual({ type: 'data/setLoading' });
+  expect(actions[1]).toEqual({ type: 'data/setData', payload: /* ... */ });
+});
+```
+
+```jsx Mocking Fetch
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ data: 'test' }),
+  })
+);
+
+test('fetchData handles success', async () => {
+  const store = mockStore({});
+  await store.dispatch(fetchData());
+  
+  expect(fetch).toHaveBeenCalledWith('/api/data');
+});
+```
+</CodeGroup>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep Thunks Focused" icon="bullseye">
+    Each thunk should handle one async operation
+  </Card>
+  <Card title="Always Handle Errors" icon="shield-check">
+    Use try-catch and dispatch error actions
+  </Card>
+  <Card title="Show Loading States" icon="spinner">
+    Give users feedback during async operations
+  </Card>
+  <Card title="Avoid Infinite Loops" icon="circle-slash">
+    Be careful with useEffect dependencies
+  </Card>
+  <Card title="Extract API Calls" icon="code">
+    Separate API logic into service functions
+  </Card>
+  <Card title="Type Your Actions" icon="file-code">
+    Use TypeScript or constants for action types
+  </Card>
+</CardGroup>
+
+---
+
+## Alternative: RTK Query
+
+For complex data fetching, consider RTK Query:
+
+```jsx
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+export const api = createApi({
+  baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
+  endpoints: (builder) => ({
+    getCart: builder.query({
+      query: () => 'cart',
+    }),
+    updateCart: builder.mutation({
+      query: (cart) => ({
+        url: 'cart',
+        method: 'PUT',
+        body: cart,
+      }),
+    }),
+  }),
+});
+```
+
+<Info>
+  **RTK Query provides:**
+  - Automatic caching
+  - Automatic refetching
+  - Loading and error states
+  - Optimistic updates
+  - Request deduplication
+  
+  Consider it for data-heavy applications.
+</Info>
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Redux Thunk Docs" icon="book" href="https://github.com/reduxjs/redux-thunk">
+    Official Redux Thunk documentation
+  </Card>
+  <Card title="RTK Query" icon="book" href="https://redux-toolkit.js.org/rtk-query/overview">
+    Powerful data fetching solution
+  </Card>
+</CardGroup>

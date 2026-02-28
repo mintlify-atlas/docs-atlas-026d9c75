@@ -1,0 +1,225 @@
+---
+title: Getting Started
+description: React basics, building your first app, and understanding React vs vanilla JavaScript
+icon: rocket
+---
+
+<Info>
+This section covers the fundamentals of React and helps you build your first React application.
+</Info>
+
+## What is React?
+
+React is a JavaScript library for building user interfaces. It makes building complex, interactive UIs easier by embracing a declarative programming approach.
+
+<CardGroup cols={2}>
+  <Card title="Why React?" icon="heart">
+    - Extremely popular library
+    - Makes building interactive UIs a breeze
+    - Powerful and flexible
+    - Active and versatile ecosystem
+  </Card>
+  
+  <Card title="Core Features" icon="sparkles">
+    - Components, JSX & Props
+    - State management
+    - Hooks (e.g., useEffect())
+    - Dynamic rendering
+  </Card>
+</CardGroup>
+
+## React vs Vanilla JavaScript
+
+The key difference between React and vanilla JavaScript is the programming paradigm:
+
+<CodeGroup>
+
+```jsx Declarative (React)
+import { useState } from "react";
+
+export default function App() {
+  const [activeContentIndex, setActiveContentIndex] = useState(0);
+
+  return (
+    <div>
+      <header>
+        <img src="react-logo-xs.png" alt="React logo" />
+        <div>
+          <h1>React.js</h1>
+          <p>i.e., using the React library for rendering the UI</p>
+        </div>
+      </header>
+
+      <div id="tabs">
+        <menu>
+          <button
+            className={activeContentIndex === 0 ? "active" : ""}
+            onClick={() => setActiveContentIndex(0)}
+          >
+            Why React?
+          </button>
+          <button
+            className={activeContentIndex === 1 ? "active" : ""}
+            onClick={() => setActiveContentIndex(1)}
+          >
+            Core Features
+          </button>
+        </menu>
+        <div id="tab-content">
+          <ul>
+            {content[activeContentIndex].map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+```javascript Imperative (Vanilla JS)
+// You define all the steps needed to achieve a result
+const button = document.querySelector('button');
+const content = document.querySelector('#content');
+
+button.addEventListener('click', () => {
+  const newElement = document.createElement('div');
+  newElement.textContent = 'Hello World';
+  content.appendChild(newElement);
+});
+```
+
+</CodeGroup>
+
+<Note>
+**Imperative Programming**: You define all the steps needed to achieve a result.
+
+**Declarative Programming**: You define the goal and React figures out how to get there.
+</Note>
+
+## Your First React App
+
+### Setting Up
+
+The easiest way to get started with React is using a build tool like Vite:
+
+```bash
+npm create vite@latest my-react-app -- --template react
+cd my-react-app
+npm install
+npm run dev
+```
+
+### Basic App Structure
+
+A simple React app consists of:
+
+1. **Entry Point** (`index.jsx` or `main.jsx`)
+2. **Root Component** (`App.jsx`)
+3. **Additional Components** (as needed)
+
+<Steps>
+  <Step title="Create the Root Component">
+    Every React app has a root component, typically called `App`:
+    
+    ```jsx App.jsx
+    export default function App() {
+      return (
+        <div>
+          <h1>React.js</h1>
+          <p>i.e., using the React library for rendering the UI</p>
+        </div>
+      );
+    }
+    ```
+  </Step>
+  
+  <Step title="Render the App">
+    Use ReactDOM to render your app to the DOM:
+    
+    ```jsx index.jsx
+    import React from 'react';
+    import ReactDOM from 'react-dom/client';
+    import App from './App';
+    
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    ```
+  </Step>
+  
+  <Step title="Run Your App">
+    Start the development server and view your app in the browser:
+    
+    ```bash
+    npm run dev
+    ```
+  </Step>
+</Steps>
+
+## Key Concepts
+
+<AccordionGroup>
+  <Accordion title="JSX Syntax">
+    JSX is a syntax extension for JavaScript that lets you write HTML-like code in your JavaScript files:
+    
+    ```jsx
+    const element = <h1>Hello, world!</h1>;
+    ```
+    
+    JSX gets transformed into regular JavaScript function calls.
+  </Accordion>
+  
+  <Accordion title="Components">
+    Components are the building blocks of React applications. They are reusable pieces of UI:
+    
+    ```jsx
+    function Header() {
+      return (
+        <header>
+          <h1>React Essentials</h1>
+          <p>Fundamental React concepts you will need for almost any app!</p>
+        </header>
+      );
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Dynamic Values">
+    Use curly braces `{}` to output dynamic values in JSX:
+    
+    ```jsx
+    function Header() {
+      const description = 'Fundamental';
+      
+      return (
+        <header>
+          <h1>React Essentials</h1>
+          <p>{description} React concepts you will need!</p>
+        </header>
+      );
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={3}>
+  <Card title="Official React Docs" icon="book" href="https://react.dev">
+    Official React documentation
+  </Card>
+  
+  <Card title="Next.js" icon="arrow-right" href="https://nextjs.org">
+    Fullstack React framework
+  </Card>
+  
+  <Card title="React Native" icon="mobile" href="https://reactnative.dev">
+    Build native mobile apps with React
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Card title="JavaScript Refresher" icon="js" href="/core/javascript-refresher">
+  Review essential JavaScript concepts needed for React development
+</Card>

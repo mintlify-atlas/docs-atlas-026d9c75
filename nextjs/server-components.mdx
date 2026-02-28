@@ -1,0 +1,385 @@
+---
+title: 'React Server Components'
+description: 'Understanding Server Components, Client Components, and data fetching in NextJS'
+---
+
+## What are Server Components?
+
+React Server Components (RSC) are a new paradigm for building React applications. In NextJS App Router, **all components are Server Components by default**.
+
+<Info>
+Server Components render exclusively on the server (or at build time) and never ship JavaScript to the client.
+</Info>
+
+### Key Benefits
+
+<CardGroup cols={2}>
+  <Card title="Zero Bundle Size" icon="feather">
+    Server Components don't add to client JavaScript bundle
+  </Card>
+  <Card title="Direct Backend Access" icon="database">
+    Access databases, file systems, and APIs directly
+  </Card>
+  <Card title="Better Performance" icon="gauge-high">
+    Less JavaScript to download and parse
+  </Card>
+  <Card title="Automatic Code Splitting" icon="scissors">
+    Only client components are split and loaded
+  </Card>
+</CardGroup>
+
+## Server vs Client Components
+
+Let's examine the difference with real examples from the course:
+
+### Server Component Example
+
+```jsx components/RSCDemo.js
+export default async function RSCDemo() {
+  console.log('RSCDemo rendered');
+  return (
+    <div className="rsc">
+      <h2>A React Server Component</h2>
+      <p>
+        Will <strong>ONLY</strong> be rendered on the server or at build time.
+      </p>
+      <p>
+        <strong>NEVER</strong> on the client-side!
+      </p>
+    </div>
+  );
+}
+```
+
+<Accordion title="Server Component Characteristics">
+- Can be `async` functions
+- Can access backend resources directly
+- Cannot use React hooks (useState, useEffect, etc.)
+- Cannot use browser APIs
+- Render once on the server
+- Console logs appear in terminal, not browser
+</Accordion>
+
+### Client Component Example
+
+```jsx components/ClientDemo.js
+'use client';
+
+import { useState } from 'react';
+
+export default function ClientDemo({ children }) {
+  const [count, setCount] = useState(0); // <- this is why it's a client component
+
+  console.log('ClientDemo rendered');
+  return (
+    <div className="client-cmp">
+      <h2>A React Client Component</h2>
+      <p>
+        Will be rendered on the client <strong>AND</strong> the server.
+      </p>
+      {children}
+    </div>
+  );
+}
+```
+
+<Warning>
+The `'use client'` directive must be at the top of the file before any imports.
+</Warning>
+
+## When to Use Each
+
+### Use Server Components for:
+
+<Steps>
+  <Step title="Data Fetching">
+    Fetch data directly from databases or APIs
+  </Step>
+  <Step title="Static Content">
+    Display content that doesn't need interactivity
+  </Step>
+  <Step title="Backend Logic">
+    Access server-only resources (file system, secrets)
+  </Step>
+  <Step title="Large Dependencies">
+    Keep heavy libraries on the server
+  </Step>
+</Steps>
+
+### Use Client Components for:
+
+<Steps>
+  <Step title="Interactivity">
+    Event handlers (onClick, onChange, etc.)
+  </Step>
+  <Step title="State Management">
+    useState, useReducer, useContext
+  </Step>
+  <Step title="Effects">
+    useEffect, useLayoutEffect
+  </Step>
+  <Step title="Browser APIs">
+    localStorage, window, document
+  </Step>
+</Steps>
+
+## Composing Server and Client Components
+
+You can nest Server Components inside Client Components, but only as props:
+
+```jsx app/page.js
+import ClientDemo from '@/components/ClientDemo';
+import RSCDemo from '@/components/RSCDemo';
+
+export default function Home() {
+  return (
+    <main>
+      <ClientDemo>
+        <RSCDemo />
+      </ClientDemo>
+    </main>
+  );
+}
+```
+
+<Tip>
+Pass Server Components as `children` or props to Client Components. This preserves the server-only nature of the nested component.
+</Tip>
+
+## Data Fetching with Server Components
+
+Server Components can be `async` and fetch data directly:
+
+```jsx components/DataFetchingDemo.js
+import fs from 'node:fs/promises';
+
+export default async function DataFetchingDemo() {
+  const data = await fs.readFile('dummy-db.json', 'utf-8');
+  const users = JSON.parse(data);
+
+  return (
+    <div className="rsc">
+      <h2>RSC with Data Fetching</h2>
+      <p>
+        Uses <strong>async / await</strong> for data fetching.
+      </p>
+      <ul>
+        {users.map((user) => (
+          <li key={user.id}>
+            {user.name} ({user.title})
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+<Info>
+Notice how we import `fs` from Node.js directly! This code only runs on the server, so we have full access to server-side APIs.
+</Info>
+
+## Real-World Example: Meals Page
+
+Let's look at a complete example from the Foodies app:
+
+```jsx app/meals/page.js
+import Link from 'next/link';
+import classes from './page.module.css';
+import MealsGrid from '@/components/meals/meals-grid';
+import { getMeals } from '@/lib/meals';
+
+export default async function MealsPage() {
+  const meals = await getMeals();
+
+  return (
+    <>
+      <header className={classes.header}>
+        <h1>
+          Delicious meals, created{' '}
+          <span className={classes.highlight}>by you</span>
+        </h1>
+        <p>
+          Choose your favorite recipe and cook it yourself. It is easy and fun!
+        </p>
+        <p className={classes.cta}>
+          <Link href="/meals/share">
+            Share Your Favorite Recipe
+          </Link>
+        </p>
+      </header>
+      <main className={classes.main}>
+        <MealsGrid meals={meals} />
+      </main>
+    </>
+  );
+}
+```
+
+<Accordion title="Why this is a Server Component">
+1. No `'use client'` directive
+2. Declared as `async` function
+3. Directly calls `getMeals()` which queries a database
+4. No interactivity or browser APIs needed
+5. Renders once on server, sent as HTML to client
+</Accordion>
+
+## Streaming with Suspense
+
+Server Components work seamlessly with React Suspense for progressive rendering:
+
+```jsx app/meals/page.js
+import { Suspense } from 'react';
+import Link from 'next/link';
+import classes from './page.module.css';
+import MealsGrid from '@/components/meals/meals-grid';
+import { getMeals } from '@/lib/meals';
+
+async function Meals() {
+  const meals = await getMeals();
+  return <MealsGrid meals={meals} />;
+}
+
+export default function MealsPage() {
+  return (
+    <>
+      <header className={classes.header}>
+        <h1>
+          Delicious meals, created{' '}
+          <span className={classes.highlight}>by you</span>
+        </h1>
+        <p>
+          Choose your favorite recipe and cook it yourself. It is easy and fun!
+        </p>
+        <p className={classes.cta}>
+          <Link href="/meals/share">Share Your Favorite Recipe</Link>
+        </p>
+      </header>
+      <main className={classes.main}>
+        <Suspense fallback={<p className={classes.loading}>Fetching meals...</p>}>
+          <Meals />
+        </Suspense>
+      </main>
+    </>
+  );
+}
+```
+
+<Steps>
+  <Step title="Instant Shell">
+    Page shell renders immediately
+  </Step>
+  <Step title="Show Fallback">
+    Suspense boundary displays loading state
+  </Step>
+  <Step title="Stream Data">
+    Data fetching happens in parallel
+  </Step>
+  <Step title="Replace Content">
+    Real content replaces fallback when ready
+  </Step>
+</Steps>
+
+## Error Handling
+
+Create an `error.js` file to handle errors in Server Components:
+
+```jsx app/meals/error.js
+'use client';
+
+export default function Error() {
+  return (
+    <main className="error">
+      <h1>An error occurred!</h1>
+      <p>Failed to fetch meal data. Please try again later.</p>
+    </main>
+  );
+}
+```
+
+<Warning>
+Error boundaries must be Client Components because they use React hooks internally (`useEffect` for error reporting).
+</Warning>
+
+## Loading States
+
+Create a `loading.js` file for automatic loading UI:
+
+```jsx app/meals/loading.js
+export default function Loading() {
+  return (
+    <div className="loading">
+      <p>Loading meals...</p>
+    </div>
+  );
+}
+```
+
+<Info>
+NextJS automatically wraps your page in a Suspense boundary using `loading.js` as the fallback.
+</Info>
+
+## Component Decision Tree
+
+<Steps>
+  <Step title="Does it need interactivity?">
+    If YES → Client Component (`'use client'`)
+    
+    If NO → Continue to step 2
+  </Step>
+  <Step title="Does it use React hooks?">
+    If YES → Client Component (`'use client'`)
+    
+    If NO → Continue to step 3
+  </Step>
+  <Step title="Does it access browser APIs?">
+    If YES → Client Component (`'use client'`)
+    
+    If NO → Continue to step 4
+  </Step>
+  <Step title="Default to Server Component">
+    Keep it as a Server Component for better performance
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep Client Components Small">
+    Only add `'use client'` to the smallest components that need it. This minimizes client JavaScript bundle size.
+  </Accordion>
+  
+  <Accordion title="Fetch Data as Close as Possible">
+    Fetch data in the component that needs it, not in a parent layout. This enables better streaming and parallel data fetching.
+  </Accordion>
+  
+  <Accordion title="Use Server Components by Default">
+    Start with Server Components and only add `'use client'` when you need interactivity or browser APIs.
+  </Accordion>
+  
+  <Accordion title="Leverage Composition">
+    Pass Server Components as children to Client Components to preserve their server-only nature.
+  </Accordion>
+</AccordionGroup>
+
+## Performance Comparison
+
+| Aspect | Client Components | Server Components |
+|--------|-------------------|-------------------|
+| Bundle Size | Adds to bundle | Zero bundle impact |
+| Initial Load | Slower (more JS) | Faster (less JS) |
+| Data Fetching | Client-side fetch | Server-side fetch |
+| Interactivity | Full interactivity | None |
+| Re-rendering | On state changes | Only on navigation |
+| Backend Access | Via APIs only | Direct access |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server Actions" icon="bolt" href="/nextjs/server-actions">
+    Learn how to handle form submissions and mutations
+  </Card>
+  <Card title="Data Fetching Patterns" icon="download">
+    Explore advanced data fetching strategies
+  </Card>
+</CardGroup>

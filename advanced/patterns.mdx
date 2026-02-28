@@ -1,0 +1,414 @@
+---
+title: 'React Patterns'
+description: 'Advanced React patterns including compound components, render props, and more'
+icon: 'puzzle-piece'
+---
+
+## Advanced React Patterns
+
+React patterns are reusable solutions to common problems. These patterns help you write more maintainable, flexible, and reusable code.
+
+## Compound Components Pattern
+
+Compound components work together to form a complete UI element, sharing implicit state:
+
+```jsx
+import { createContext, useContext, useState } from 'react';
+
+import AccordionItem from './AccordionItem.jsx';
+import AccordionTitle from './AccordionTitle.jsx';
+import AccordionContent from './AccordionContent.jsx';
+
+const AccordionContext = createContext();
+
+export function useAccordionContext() {
+  const ctx = useContext(AccordionContext);
+
+  if (!ctx) {
+    throw new Error(
+      'Accordion-related components must be wrapped by <Accordion>.'
+    );
+  }
+
+  return ctx;
+}
+
+export default function Accordion({ children, className }) {
+  const [openItemId, setOpenItemId] = useState();
+
+  function toggleItem(id) {
+    setOpenItemId((prevId) => (prevId === id ? null : id));
+  }
+
+  const contextValue = {
+    openItemId,
+    toggleItem,
+  };
+
+  return (
+    <AccordionContext.Provider value={contextValue}>
+      <ul className={className}>{children}</ul>
+    </AccordionContext.Provider>
+  );
+}
+
+Accordion.Item = AccordionItem;
+Accordion.Title = AccordionTitle;
+Accordion.Content = AccordionContent;
+```
+
+### Using Compound Components
+
+```jsx
+import Accordion from './components/Accordion/Accordion.jsx';
+
+function App() {
+  return (
+    <main>
+      <section>
+        <h2>Why work with us?</h2>
+
+        <Accordion className="accordion">
+          <Accordion.Item className="accordion-item">
+            <Accordion.Title className="accordion-item-title" id="experience">
+              We got 20 years of experience
+            </Accordion.Title>
+            <Accordion.Content
+              className="accordion-item-content"
+              id="experience"
+            >
+              <article>
+                <p>You can't go wrong with us.</p>
+                <p>
+                  We are in the business of planning highly individualized
+                  vacation trips for more than 20 years.
+                </p>
+              </article>
+            </Accordion.Content>
+          </Accordion.Item>
+          
+          <Accordion.Item className="accordion-item">
+            <Accordion.Title id="local-guides" className="accordion-item-title">
+              We are working with local guides
+            </Accordion.Title>
+            <Accordion.Content
+              id="local-guides"
+              className="accordion-item-content"
+            >
+              <article>
+                <p>We are not doing this along from our office.</p>
+                <p>
+                  Instead, we are working with local guides to ensure a safe and
+                  pleasant vacation.
+                </p>
+              </article>
+            </Accordion.Content>
+          </Accordion.Item>
+        </Accordion>
+      </section>
+    </main>
+  );
+}
+```
+
+<Tip>
+Compound components provide a clean, declarative API and keep related components tightly coupled.
+</Tip>
+
+## Benefits of Compound Components
+
+<Steps>
+  <Step title="Flexible API">
+    Users can compose components in various ways while maintaining shared state.
+  </Step>
+  
+  <Step title="Separation of Concerns">
+    Each sub-component handles its own rendering logic while sharing context.
+  </Step>
+  
+  <Step title="Implicit State Sharing">
+    State is managed in the parent and automatically available to all children through context.
+  </Step>
+  
+  <Step title="Better Developer Experience">
+    Clear, semantic component structure that's easy to understand and use.
+  </Step>
+</Steps>
+
+## Render Props Pattern
+
+Pass a function as a prop to share code between components:
+
+```jsx
+export default function SearchableList({ items, itemKeyFn, children }) {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const searchResults = items.filter((item) =>
+    JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  function handleChange(event) {
+    setSearchTerm(event.target.value);
+  }
+
+  return (
+    <div className="searchable-list">
+      <input type="search" placeholder="Search" onChange={handleChange} />
+      <ul>
+        {searchResults.map((item) => (
+          <li key={itemKeyFn(item)}>
+            {children(item)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Using Render Props
+
+```jsx
+import SearchableList from './components/SearchableList/SearchableList';
+
+const PLACES = [
+  { id: 'p1', title: 'Forest Adventure', image: 'forest.jpg' },
+  { id: 'p2', title: 'Beach Paradise', image: 'beach.jpg' },
+];
+
+function App() {
+  return (
+    <main>
+      <SearchableList items={PLACES} itemKeyFn={(item) => item.id}>
+        {(item) => (
+          <article>
+            <img src={item.image} alt={item.title} />
+            <h3>{item.title}</h3>
+          </article>
+        )}
+      </SearchableList>
+    </main>
+  );
+}
+```
+
+<Note>
+Render props allow the component to be flexible about what it renders while managing the logic internally.
+</Note>
+
+## Debouncing Pattern
+
+Delay expensive operations until user stops typing:
+
+```jsx
+import { useRef, useState } from 'react';
+
+export default function SearchableList({ items, itemKeyFn, children }) {
+  const lastChange = useRef();
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const searchResults = items.filter((item) =>
+    JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  function handleChange(event) {
+    if (lastChange.current) {
+      clearTimeout(lastChange.current);
+    }
+
+    lastChange.current = setTimeout(() => {
+      lastChange.current = null;
+      setSearchTerm(event.target.value);
+    }, 500);
+  }
+
+  return (
+    <div className="searchable-list">
+      <input type="search" placeholder="Search" onChange={handleChange} />
+      <ul>
+        {searchResults.map((item) => (
+          <li key={itemKeyFn(item)}>{children(item)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+<Warning>
+Always clear timeouts when the component unmounts to prevent memory leaks.
+</Warning>
+
+## Higher-Order Components (HOC)
+
+A function that takes a component and returns a new enhanced component:
+
+```jsx
+function withLoading(Component) {
+  return function WithLoadingComponent({ isLoading, ...props }) {
+    if (isLoading) {
+      return <div>Loading...</div>;
+    }
+    return <Component {...props} />;
+  };
+}
+
+// Usage
+const UserListWithLoading = withLoading(UserList);
+
+function App() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState([]);
+
+  return <UserListWithLoading isLoading={isLoading} users={users} />;
+}
+```
+
+## Container/Presentational Pattern
+
+Separate logic from presentation:
+
+<CodeGroup>
+```jsx Container (Logic)
+function UserListContainer() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUsers().then(data => {
+      setUsers(data);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <Loading />;
+  
+  return <UserList users={users} />;
+}
+```
+
+```jsx Presentational (UI)
+function UserList({ users }) {
+  return (
+    <ul>
+      {users.map(user => (
+        <li key={user.id}>
+          <h3>{user.name}</h3>
+          <p>{user.email}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+</CodeGroup>
+
+## Custom Hook Pattern
+
+Extract reusable logic into custom hooks:
+
+```javascript
+function useToggle(initialValue = false) {
+  const [value, setValue] = useState(initialValue);
+
+  const toggle = useCallback(() => {
+    setValue(v => !v);
+  }, []);
+
+  return [value, toggle];
+}
+
+// Usage
+function Modal() {
+  const [isOpen, toggleOpen] = useToggle(false);
+
+  return (
+    <>
+      <button onClick={toggleOpen}>Open Modal</button>
+      {isOpen && <div>Modal Content</div>}
+    </>
+  );
+}
+```
+
+## State Reducer Pattern
+
+Give users control over internal state logic:
+
+```jsx
+function toggleReducer(state, action) {
+  switch (action.type) {
+    case 'TOGGLE':
+      return { on: !state.on };
+    case 'RESET':
+      return { on: false };
+    default:
+      return state;
+  }
+}
+
+function useToggle() {
+  const [state, dispatch] = useReducer(toggleReducer, { on: false });
+
+  const toggle = () => dispatch({ type: 'TOGGLE' });
+  const reset = () => dispatch({ type: 'RESET' });
+
+  return { on: state.on, toggle, reset };
+}
+```
+
+## Pattern Comparison
+
+<AccordionGroup>
+  <Accordion title="When to use Compound Components">
+    - Building complex UI components with multiple related parts
+    - Need tight coupling between parent and children
+    - Want a clean, declarative API
+    - Examples: Accordions, Tabs, Select dropdowns
+  </Accordion>
+  
+  <Accordion title="When to use Render Props">
+    - Need to share code between components
+    - Want flexibility in what gets rendered
+    - Logic is reusable but UI varies
+    - Examples: Data fetching, animations, form handling
+  </Accordion>
+  
+  <Accordion title="When to use Custom Hooks">
+    - Extracting stateful logic
+    - Sharing logic across multiple components
+    - Simplifying complex components
+    - Examples: Form handling, data fetching, subscriptions
+  </Accordion>
+  
+  <Accordion title="When to use HOCs">
+    - Need to enhance multiple components with same logic
+    - Working with legacy code
+    - Cross-cutting concerns like logging, auth
+    - Note: Custom hooks are often preferred in modern React
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Composition over Inheritance" icon="layer-group">
+    React favors composition. Build complex UIs from simple, reusable components.
+  </Card>
+  
+  <Card title="Single Responsibility" icon="bullseye">
+    Each component should do one thing well. Split complex components into smaller ones.
+  </Card>
+  
+  <Card title="Props vs Context" icon="right-left">
+    Use props for explicit data flow, context for deeply nested data needs.
+  </Card>
+  
+  <Card title="Keep Components Pure" icon="flask">
+    Same props should always produce same output. Avoid side effects in render.
+  </Card>
+</CardGroup>
+
+<Info>
+**Source Code**: Section 27 - Patterns
+</Info>

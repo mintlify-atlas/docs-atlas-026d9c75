@@ -1,0 +1,641 @@
+---
+title: "Refs & Portals"
+description: "Master DOM manipulation with useRef, forwardRef, useImperativeHandle, and render components outside the DOM hierarchy with portals"
+icon: "diagram-project"
+---
+
+## Overview
+
+Refs provide a way to access DOM elements or store mutable values that persist across renders. Portals allow you to render components outside of the parent component's DOM hierarchy.
+
+<CardGroup cols={2}>
+  <Card title="useRef Hook" icon="anchor">
+    Access DOM elements and store mutable values
+  </Card>
+  <Card title="forwardRef" icon="share">
+    Pass refs through components to children
+  </Card>
+  <Card title="useImperativeHandle" icon="wrench">
+    Expose custom component APIs to parent components
+  </Card>
+  <Card title="Portals" icon="portal-enter">
+    Render components outside the parent DOM tree
+  </Card>
+</CardGroup>
+
+## Why Use Refs?
+
+Refs are useful when you need to:
+
+<Steps>
+  <Step title="Access DOM elements">
+    Directly manipulate DOM elements (focus, scroll, measure)
+  </Step>
+  <Step title="Store mutable values">
+    Keep values that don't trigger re-renders when changed
+  </Step>
+  <Step title="Persist across renders">
+    Maintain values that survive component re-renders
+  </Step>
+  <Step title="Integrate with third-party libraries">
+    Work with libraries that require direct DOM access
+  </Step>
+</Steps>
+
+## useRef Hook
+
+### Basic DOM Access
+
+The most common use case for refs is accessing DOM elements.
+
+<CodeGroup>
+```jsx Player.jsx
+import { useState, useRef } from 'react';
+
+export default function Player() {
+  const playerName = useRef();
+  const [enteredPlayerName, setEnteredPlayerName] = useState(null);
+  
+  function handleClick() {
+    setEnteredPlayerName(playerName.current.value);
+  }
+
+  return (
+    <section id="player">
+      <h2>Welcome {enteredPlayerName ?? 'unknown entity'}</h2>
+      <p>
+        <input
+          ref={playerName}
+          type="text"
+        />
+        <button onClick={handleClick}>Set Name</button>
+      </p>
+    </section>
+  );
+}
+```
+</CodeGroup>
+
+<Info>
+The `current` property of a ref contains the actual DOM element after React mounts it. Always access DOM elements via `ref.current`.
+</Info>
+
+### Storing Mutable Values
+
+Refs can store any mutable value that shouldn't trigger re-renders.
+
+<CodeGroup>
+```jsx TimerChallenge.jsx
+import { useState, useRef } from 'react';
+
+export default function TimerChallenge({ title, targetTime }) {
+  const timer = useRef();
+  const [timerStarted, setTimerStarted] = useState(false);
+  const [timerExpired, setTimerExpired] = useState(false);
+
+  function handleStart() {
+    timer.current = setTimeout(() => {
+      setTimerExpired(true);
+    }, targetTime * 1000);
+
+    setTimerStarted(true);
+  }
+
+  function handleStop() {
+    clearTimeout(timer.current);
+  }
+
+  return (
+    <section className="challenge">
+      <h2>{title}</h2>
+      {timerExpired && <p>You lost!</p>}
+      <p className="challenge-time">
+        {targetTime} second{targetTime > 1 ? 's' : ''}
+      </p>
+      <p>
+        <button onClick={timerStarted ? handleStop : handleStart}>
+          {timerStarted ? 'Stop' : 'Start'} Challenge
+        </button>
+      </p>
+      <p className={timerStarted ? 'active' : undefined}>
+        {timerStarted ? 'Time is running...' : 'Timer inactive'}
+      </p>
+    </section>
+  );
+}
+```
+</CodeGroup>
+
+<Warning>
+Don't use refs for values that should trigger re-renders. Use state instead. Changing a ref's value doesn't cause the component to re-render.
+</Warning>
+
+## State vs Refs
+
+<Tabs>
+  <Tab title="useState">
+    ```jsx
+    const [value, setValue] = useState(0);
+    ```
+    
+    **Characteristics:**
+    - Triggers re-render when updated
+    - Asynchronous updates
+    - Immutable update pattern
+    - Use for UI-related data
+    
+    **Example use cases:**
+    - Form input values displayed in UI
+    - Toggle states (open/closed)
+    - Lists, counters, any displayed data
+  </Tab>
+  
+  <Tab title="useRef">
+    ```jsx
+    const ref = useRef(null);
+    ```
+    
+    **Characteristics:**
+    - Does NOT trigger re-render
+    - Synchronous updates
+    - Mutable via `.current`
+    - Use for non-UI data
+    
+    **Example use cases:**
+    - Timer IDs
+    - DOM element references
+    - Previous values
+    - Interval/timeout IDs
+  </Tab>
+</Tabs>
+
+## forwardRef
+
+By default, you can't pass refs to functional components. `forwardRef` enables this.
+
+### Basic Usage
+
+<CodeGroup>
+```jsx ResultModal.jsx
+import { forwardRef } from 'react';
+
+const ResultModal = forwardRef(function ResultModal(
+  { result, targetTime },
+  ref
+) {
+  return (
+    <dialog ref={ref} className="result-modal">
+      <h2>You {result}</h2>
+      <p>
+        The target time was <strong>{targetTime} seconds.</strong>
+      </p>
+      <p>
+        You stopped the timer with <strong>X seconds left.</strong>
+      </p>
+      <form method="dialog">
+        <button>Close</button>
+      </form>
+    </dialog>
+  );
+});
+
+export default ResultModal;
+```
+
+```jsx Using the forwarded ref
+import { useRef } from 'react';
+import ResultModal from './ResultModal';
+
+function TimerChallenge() {
+  const dialog = useRef();
+
+  function handleShowModal() {
+    dialog.current.showModal(); // Native dialog API
+  }
+
+  return (
+    <>
+      <button onClick={handleShowModal}>Show Result</button>
+      <ResultModal ref={dialog} result="won" targetTime={5} />
+    </>
+  );
+}
+```
+</CodeGroup>
+
+<Note>
+`forwardRef` accepts a render function that receives `props` and `ref` as separate arguments. The component name should be provided as the function name for better debugging.
+</Note>
+
+## useImperativeHandle
+
+Customize the ref value exposed to parent components.
+
+<CodeGroup>
+```jsx ResultModal.jsx
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+
+const ResultModal = forwardRef(function ResultModal(
+  { result, targetTime },
+  ref
+) {
+  const dialog = useRef();
+
+  useImperativeHandle(ref, () => {
+    return {
+      open() {
+        dialog.current.showModal();
+      }
+    };
+  });
+
+  return (
+    <dialog ref={dialog} className="result-modal">
+      <h2>You {result}</h2>
+      <p>
+        The target time was <strong>{targetTime} seconds.</strong>
+      </p>
+      <p>
+        You stopped the timer with <strong>X seconds left.</strong>
+      </p>
+      <form method="dialog">
+        <button>Close</button>
+      </form>
+    </dialog>
+  );
+});
+
+export default ResultModal;
+```
+
+```jsx Parent Component
+import { useRef } from 'react';
+import ResultModal from './ResultModal';
+
+function TimerChallenge() {
+  const dialog = useRef();
+
+  function handleShowModal() {
+    dialog.current.open(); // Custom API method
+  }
+
+  return (
+    <>
+      <button onClick={handleShowModal}>Show Result</button>
+      <ResultModal ref={dialog} result="won" targetTime={5} />
+    </>
+  );
+}
+```
+</CodeGroup>
+
+<Tip>
+`useImperativeHandle` is perfect for creating clean, controlled APIs for your components while hiding implementation details from parent components.
+</Tip>
+
+### Benefits of useImperativeHandle
+
+<AccordionGroup>
+  <Accordion title="Encapsulation">
+    - Hide internal implementation details
+    - Expose only necessary methods
+    - Prevent direct DOM manipulation by parents
+    - Create a clear component API
+  </Accordion>
+  
+  <Accordion title="Flexibility">
+    - Add validation or logic before DOM operations
+    - Combine multiple operations into one method
+    - Provide custom methods beyond native DOM APIs
+    - Maintain control over component behavior
+  </Accordion>
+  
+  <Accordion title="Maintainability">
+    - Change internal implementation without breaking parent components
+    - Create self-documenting component interfaces
+    - Easier to test and debug
+  </Accordion>
+</AccordionGroup>
+
+## Portals
+
+Portals let you render components outside the parent component's DOM hierarchy.
+
+### Why Use Portals?
+
+<CardGroup cols={2}>
+  <Card title="Modals & Dialogs" icon="window-maximize">
+    Render modals at document root to avoid z-index issues
+  </Card>
+  <Card title="Tooltips" icon="message">
+    Position tooltips correctly regardless of parent overflow
+  </Card>
+  <Card title="Dropdowns" icon="caret-down">
+    Prevent clipping by parent containers
+  </Card>
+  <Card title="Notifications" icon="bell">
+    Display notifications at a consistent location
+  </Card>
+</CardGroup>
+
+### Creating a Portal
+
+<Steps>
+  <Step title="Add a portal root to HTML">
+    ```html index.html
+    <body>
+      <div id="root"></div>
+      <div id="modal"></div>
+    </body>
+    ```
+  </Step>
+  
+  <Step title="Import createPortal">
+    ```jsx
+    import { createPortal } from 'react-dom';
+    ```
+  </Step>
+  
+  <Step title="Render content in the portal">
+    ```jsx
+    return createPortal(
+      <YourComponent />,
+      document.getElementById('modal')
+    );
+    ```
+  </Step>
+</Steps>
+
+### Basic Portal Example
+
+<CodeGroup>
+```jsx Modal.jsx
+import { createPortal } from 'react-dom';
+
+export default function Modal({ title, children, onClose }) {
+  return createPortal(
+    <>
+      <div className="backdrop" onClick={onClose} />
+      <dialog open className="modal">
+        <h2>{title}</h2>
+        {children}
+      </dialog>
+    </>,
+    document.getElementById('modal')
+  );
+}
+```
+
+```jsx Usage
+import { useState } from 'react';
+import Modal from './Modal';
+
+function App() {
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <div>
+      <button onClick={() => setShowModal(true)}>
+        Open Modal
+      </button>
+      
+      {showModal && (
+        <Modal 
+          title="Welcome"
+          onClose={() => setShowModal(false)}
+        >
+          <p>This is modal content!</p>
+        </Modal>
+      )}
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+### Advanced Portal with Refs
+
+Combine portals with refs for maximum control.
+
+<CodeGroup>
+```jsx ResultModal.jsx
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { createPortal } from 'react-dom';
+
+const ResultModal = forwardRef(function ResultModal(
+  { targetTime, remainingTime, onReset },
+  ref
+) {
+  const dialog = useRef();
+
+  const userLost = remainingTime <= 0;
+  const formattedRemainingTime = (remainingTime / 1000).toFixed(2);
+  const score = Math.round((1 - remainingTime / (targetTime * 1000)) * 100);
+
+  useImperativeHandle(ref, () => {
+    return {
+      open() {
+        dialog.current.showModal();
+      },
+    };
+  });
+
+  return createPortal(
+    <dialog ref={dialog} className="result-modal">
+      {userLost && <h2>You lost</h2>}
+      {!userLost && <h2>Your Score: {score}</h2>}
+      <p>
+        The target time was <strong>{targetTime} seconds.</strong>
+      </p>
+      <p>
+        You stopped the timer with{' '}
+        <strong>{formattedRemainingTime} seconds left.</strong>
+      </p>
+      <form method="dialog" onSubmit={onReset}>
+        <button>Close</button>
+      </form>
+    </dialog>,
+    document.getElementById('modal')
+  );
+});
+
+export default ResultModal;
+```
+</CodeGroup>
+
+<Info>
+Even though portals render in a different DOM location, they still behave like normal React children in terms of event bubbling and context.
+</Info>
+
+## Event Bubbling with Portals
+
+Portals maintain React's event bubbling behavior.
+
+<CodeGroup>
+```jsx
+function Parent() {
+  function handleClick() {
+    console.log('Clicked in parent!');
+  }
+
+  return (
+    <div onClick={handleClick}>
+      <button>Regular Button</button>
+      <Modal>
+        <button>Portal Button</button>
+      </Modal>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+<Note>
+Clicking either button will trigger the parent's `onClick` handler, even though the Modal renders via a portal outside the parent's DOM tree.
+</Note>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="When to use refs">
+    **DO use refs for:**
+    - Managing focus, text selection, or media playback
+    - Triggering imperative animations
+    - Integrating with third-party DOM libraries
+    - Storing timer IDs, previous values, or other non-UI data
+    
+    **DON'T use refs for:**
+    - Anything that should trigger a re-render
+    - Values displayed in the UI (use state instead)
+    - Communication between components (use props/context)
+  </Accordion>
+  
+  <Accordion title="Ref timing">
+    - Refs are `null` during the initial render
+    - Access `ref.current` only after the component mounts
+    - Use `useEffect` if you need to run code when a ref is set
+    - Never read or write refs during rendering
+  </Accordion>
+  
+  <Accordion title="Portal best practices">
+    - Always provide a portal root in your HTML
+    - Use portals for modals, tooltips, and overlays
+    - Remember that CSS inheritance doesn't cross portal boundaries
+    - Event handlers still work as if the portal was in the React tree
+  </Accordion>
+  
+  <Accordion title="forwardRef considerations">
+    - Use meaningful names for forwarded components
+    - Combine with `useImperativeHandle` to expose controlled APIs
+    - Don't overuse - not every component needs to forward refs
+    - Document what ref methods are available to consumers
+  </Accordion>
+</AccordionGroup>
+
+## Common Patterns
+
+<Tabs>
+  <Tab title="Auto-focus Input">
+    ```jsx
+    import { useRef, useEffect } from 'react';
+
+    function SearchInput() {
+      const inputRef = useRef();
+
+      useEffect(() => {
+        inputRef.current.focus();
+      }, []);
+
+      return <input ref={inputRef} type="text" />;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Scroll to Element">
+    ```jsx
+    import { useRef } from 'react';
+
+    function ScrollToSection() {
+      const sectionRef = useRef();
+
+      function handleScroll() {
+        sectionRef.current.scrollIntoView({ 
+          behavior: 'smooth' 
+        });
+      }
+
+      return (
+        <>
+          <button onClick={handleScroll}>Scroll Down</button>
+          <div ref={sectionRef}>
+            Target Section
+          </div>
+        </>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Previous Value">
+    ```jsx
+    import { useRef, useEffect } from 'react';
+
+    function usePrevious(value) {
+      const ref = useRef();
+      
+      useEffect(() => {
+        ref.current = value;
+      }, [value]);
+      
+      return ref.current;
+    }
+
+    function Counter({ count }) {
+      const prevCount = usePrevious(count);
+      
+      return (
+        <div>
+          <p>Current: {count}</p>
+          <p>Previous: {prevCount}</p>
+        </div>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Modal with Portal">
+    ```jsx
+    import { createPortal } from 'react-dom';
+    import { useEffect, useRef } from 'react';
+
+    function Modal({ children, onClose }) {
+      const modalRef = useRef();
+
+      useEffect(() => {
+        const modal = modalRef.current;
+        modal.showModal();
+        
+        return () => modal.close();
+      }, []);
+
+      return createPortal(
+        <dialog ref={modalRef} onClose={onClose}>
+          {children}
+        </dialog>,
+        document.getElementById('modal-root')
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Styling" icon="palette" href="/ui/styling">
+    Learn about different styling approaches
+  </Card>
+  <Card title="Animations" icon="sparkles" href="/ui/animations">
+    Add smooth transitions to your portals and modals
+  </Card>
+</CardGroup>

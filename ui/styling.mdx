@@ -1,0 +1,511 @@
+---
+title: "Styling in React"
+description: "Master different styling approaches in React including inline styles, CSS classes, CSS Modules, styled-components, and Tailwind CSS"
+icon: "palette"
+---
+
+## Overview
+
+React offers multiple ways to style your components, each with its own advantages and use cases. This section covers the main styling approaches used in modern React applications.
+
+<CardGroup cols={2}>
+  <Card title="Dynamic Styling" icon="wand-magic-sparkles">
+    Apply styles conditionally based on component state
+  </Card>
+  <Card title="CSS Modules" icon="box">
+    Scoped CSS that prevents style conflicts
+  </Card>
+  <Card title="Styled Components" icon="code">
+    CSS-in-JS with dynamic prop-based styling
+  </Card>
+  <Card title="Tailwind CSS" icon="wind">
+    Utility-first CSS framework for rapid development
+  </Card>
+</CardGroup>
+
+## Inline Styles
+
+Inline styles are JavaScript objects applied directly to elements. They're useful for highly dynamic styles.
+
+<CodeGroup>
+```jsx Dynamic Inline Styles
+import { useState } from 'react';
+
+export default function AuthInputs() {
+  const [enteredEmail, setEnteredEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const emailNotValid = submitted && !enteredEmail.includes('@');
+
+  return (
+    <input
+      type="email"
+      style={{
+        backgroundColor: emailNotValid ? '#fed2d2' : '#d1d5db'
+      }}
+      onChange={(event) => setEnteredEmail(event.target.value)}
+    />
+  );
+}
+```
+</CodeGroup>
+
+<Note>
+Inline styles use camelCase property names (e.g., `backgroundColor` instead of `background-color`) and values must be strings or numbers.
+</Note>
+
+### Pros and Cons
+
+<AccordionGroup>
+  <Accordion title="Advantages">
+    - Direct access to component state and props
+    - No CSS file needed
+    - Styles are scoped to the component
+    - Great for highly dynamic values
+  </Accordion>
+  
+  <Accordion title="Disadvantages">
+    - No pseudo-selectors (`:hover`, `:focus`, etc.)
+    - No media queries
+    - Can become verbose for complex styles
+    - Inline styles have high specificity
+  </Accordion>
+</AccordionGroup>
+
+## Dynamic CSS Classes
+
+Conditionally apply CSS classes for more maintainable styling.
+
+<CodeGroup>
+```jsx Conditional Classes
+import { useState } from 'react';
+
+export default function AuthInputs() {
+  const [enteredEmail, setEnteredEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const emailNotValid = submitted && !enteredEmail.includes('@');
+
+  return (
+    <div>
+      <label className={`label ${emailNotValid ? 'invalid' : ''}`}>
+        Email
+      </label>
+      <input
+        type="email"
+        className={emailNotValid ? 'invalid' : undefined}
+        onChange={(event) => setEnteredEmail(event.target.value)}
+      />
+    </div>
+  );
+}
+```
+
+```css Corresponding CSS
+.label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.label.invalid {
+  color: #f87171;
+}
+
+.invalid {
+  background-color: #fed2d2;
+  color: #ef4444;
+  border: 1px solid #f73f3f;
+}
+```
+</CodeGroup>
+
+<Tip>
+Use template literals to combine multiple class names dynamically. For more complex scenarios, consider the `classnames` or `clsx` libraries.
+</Tip>
+
+## CSS Modules
+
+CSS Modules automatically scope styles to components, preventing conflicts.
+
+<Steps>
+  <Step title="Create a CSS Module">
+    Name your file with `.module.css` extension (e.g., `Header.module.css`)
+  </Step>
+  <Step title="Import the module">
+    Import styles as an object in your component
+  </Step>
+  <Step title="Apply scoped classes">
+    Use the imported object to apply classes
+  </Step>
+</Steps>
+
+<CodeGroup>
+```jsx Header.jsx
+import logo from '../assets/logo.png';
+import classes from './Header.module.css';
+
+export default function Header() {
+  return (
+    <header>
+      <img src={logo} alt="A canvas" />
+      <h1>ReactArt</h1>
+      <p className={classes.paragraph}>
+        A community of artists and art-lovers.
+      </p>
+    </header>
+  );
+}
+```
+
+```css Header.module.css
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+header img {
+  object-fit: contain;
+  margin-bottom: 2rem;
+  width: 11rem;
+  height: 11rem;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: #9a3412;
+  font-family: 'Pacifico', cursive;
+}
+
+.paragraph {
+  text-align: center;
+  color: #a39191;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  header {
+    margin-bottom: 4rem;
+  }
+
+  header h1 {
+    font-size: 2.25rem;
+  }
+}
+```
+</CodeGroup>
+
+<Info>
+CSS Modules work out-of-the-box with Vite and Create React App. Element selectors (like `header`, `h1`) remain global, while class selectors get scoped.
+</Info>
+
+## Styled Components
+
+Styled-components is a popular CSS-in-JS library that allows you to write CSS directly in your JavaScript files.
+
+### Installation
+
+```bash
+npm install styled-components
+```
+
+### Basic Usage
+
+<CodeGroup>
+```jsx Button.jsx
+import { styled } from 'styled-components';
+
+const Button = styled.button`
+  padding: 1rem 2rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 0.25rem;
+  color: #1f2937;
+  background-color: #f0b322;
+  border: none;
+
+  &:hover {
+    background-color: #f0920e;
+  }
+`;
+
+export default Button;
+```
+
+```jsx Usage
+import Button from './Button';
+
+function App() {
+  return <Button onClick={handleLogin}>Sign In</Button>;
+}
+```
+</CodeGroup>
+
+### Dynamic Styling with Props
+
+<CodeGroup>
+```jsx Input.jsx
+import { styled } from 'styled-components';
+
+const Label = styled.label`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: ${({ $invalid }) => ($invalid ? '#f87171' : '#6b7280')};
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  line-height: 1.5;
+  background-color: ${({ $invalid }) => ($invalid ? '#fed2d2' : '#d1d5db')};
+  color: ${({ $invalid }) => ($invalid ? '#ef4444' : '#374151')};
+  border: 1px solid ${({ $invalid }) => ($invalid ? '#f73f3f' : 'transparent')};
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+`;
+
+export default function CustomInput({ label, invalid, ...props }) {
+  return (
+    <p>
+      <Label $invalid={invalid}>{label}</Label>
+      <Input $invalid={invalid} {...props} />
+    </p>
+  );
+}
+```
+</CodeGroup>
+
+<Warning>
+Use the `$` prefix for props that shouldn't be passed to the DOM (like `$invalid`). This prevents React warnings about unknown DOM attributes.
+</Warning>
+
+### Nested Styles and Media Queries
+
+<CodeGroup>
+```jsx Header.jsx
+import { styled } from 'styled-components';
+import logo from '../assets/logo.png';
+
+const StyledHeader = styled.header`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+
+  & img {
+    object-fit: contain;
+    margin-bottom: 2rem;
+    width: 11rem;
+    height: 11rem;
+  }
+  
+  & h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    text-align: center;
+    text-transform: uppercase;
+    color: #9a3412;
+    font-family: 'Pacifico', cursive;
+    margin: 0;
+  }
+  
+  & p {
+    text-align: center;
+    color: #a39191;
+    margin: 0;
+  }
+  
+  @media (min-width: 768px) {
+    margin-bottom: 4rem;
+  
+    & h1 {
+      font-size: 2.25rem;
+    }
+  }
+`;
+
+export default function Header() {
+  return (
+    <StyledHeader>
+      <img src={logo} alt="A canvas" />
+      <h1>ReactArt</h1>
+      <p>A community of artists and art-lovers.</p>
+    </StyledHeader>
+  );
+}
+```
+</CodeGroup>
+
+<Tip>
+Styled-components supports all CSS features including pseudo-selectors, media queries, animations, and nested selectors using the `&` symbol.
+</Tip>
+
+## Tailwind CSS
+
+Tailwind CSS is a utility-first CSS framework that provides pre-built classes for rapid UI development.
+
+### Setup with Vite
+
+<Steps>
+  <Step title="Install Tailwind">
+    ```bash
+    npm install -D tailwindcss postcss autoprefixer
+    npx tailwindcss init -p
+    ```
+  </Step>
+  
+  <Step title="Configure template paths">
+    ```js tailwind.config.js
+    export default {
+      content: [
+        "./index.html",
+        "./src/**/*.{js,ts,jsx,tsx}",
+      ],
+      theme: {
+        extend: {},
+      },
+      plugins: [],
+    }
+    ```
+  </Step>
+  
+  <Step title="Add Tailwind directives">
+    ```css index.css
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+    ```
+  </Step>
+</Steps>
+
+### Usage Example
+
+<CodeGroup>
+```jsx AuthInputs.jsx
+import { useState } from 'react';
+import Button from './Button.jsx';
+import Input from './Input.jsx';
+
+export default function AuthInputs() {
+  const [enteredEmail, setEnteredEmail] = useState('');
+  const [enteredPassword, setEnteredPassword] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const emailNotValid = submitted && !enteredEmail.includes('@');
+  const passwordNotValid = submitted && enteredPassword.trim().length < 6;
+
+  function handleLogin() {
+    setSubmitted(true);
+  }
+
+  return (
+    <div
+      id="auth-inputs"
+      className="w-full max-w-sm p-8 mx-auto rounded shadow-md bg-gradient-to-b from-stone-700 to-stone-800"
+    >
+      <div className="flex flex-col gap-2 mb-6">
+        <Input
+          label="Email"
+          invalid={emailNotValid}
+          type="email"
+          onChange={(event) => setEnteredEmail(event.target.value)}
+        />
+        <Input
+          invalid={passwordNotValid}
+          label="Password"
+          type="password"
+          onChange={(event) => setEnteredPassword(event.target.value)}
+        />
+      </div>
+      <div className="flex justify-end gap-4">
+        <button type="button" className="text-amber-400 hover:text-amber-500">
+          Create a new account
+        </button>
+        <Button onClick={handleLogin}>Sign In</Button>
+      </div>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+<Info>
+Tailwind's utility classes make it easy to build responsive, dynamic UIs without writing custom CSS. Classes like `hover:`, `focus:`, and responsive prefixes (`sm:`, `md:`, `lg:`) enable complex styling with minimal code.
+</Info>
+
+## Choosing a Styling Approach
+
+<CardGroup cols={2}>
+  <Card title="Inline Styles" icon="code">
+    **Best for:** Highly dynamic values, one-off styles
+    
+    **Avoid when:** You need pseudo-selectors or media queries
+  </Card>
+  
+  <Card title="CSS Modules" icon="box">
+    **Best for:** Traditional CSS workflow, component-scoped styles
+    
+    **Avoid when:** You need highly dynamic prop-based styling
+  </Card>
+  
+  <Card title="Styled Components" icon="paintbrush">
+    **Best for:** Component libraries, dynamic theming, full CSS features in JS
+    
+    **Avoid when:** You prefer separation of concerns or have performance constraints
+  </Card>
+  
+  <Card title="Tailwind CSS" icon="wind">
+    **Best for:** Rapid prototyping, consistent design systems, utility-first approach
+    
+    **Avoid when:** You prefer semantic class names or have a custom design system
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep styles maintainable">
+    - Choose one primary styling approach per project
+    - Use inline styles sparingly, only for truly dynamic values
+    - Create reusable styled components for common patterns
+  </Accordion>
+  
+  <Accordion title="Performance considerations">
+    - CSS Modules and regular CSS have the best performance
+    - Styled-components and CSS-in-JS add runtime overhead
+    - Tailwind generates optimized, purged CSS in production
+  </Accordion>
+  
+  <Accordion title="Team consistency">
+    - Document your team's chosen approach
+    - Use linting tools to enforce styling conventions
+    - Consider developer experience and team familiarity
+  </Accordion>
+</AccordionGroup>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Refs & Portals" icon="diagram-project" href="/ui/refs-portals">
+    Learn about DOM manipulation and portals
+  </Card>
+  <Card title="Animations" icon="sparkles" href="/ui/animations">
+    Add smooth transitions and animations
+  </Card>
+</CardGroup>

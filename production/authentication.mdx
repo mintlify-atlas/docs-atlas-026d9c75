@@ -1,0 +1,483 @@
+---
+title: 'Authentication Patterns'
+description: 'Implement secure authentication in React applications with token management, route protection, and user session handling'
+icon: 'shield-halved'
+---
+
+## Overview
+
+Authentication in React applications typically involves managing user tokens, protecting routes, and coordinating authentication state across the application.
+
+<Info>
+This guide covers token-based authentication using localStorage, React Router actions, and route protection strategies.
+</Info>
+
+## Authentication Form
+
+Create a flexible authentication form supporting both login and signup:
+
+```javascript
+import {
+  Form,
+  Link,
+  useSearchParams,
+  useActionData,
+  useNavigation,
+} from 'react-router-dom';
+
+function AuthForm() {
+  const data = useActionData();
+  const navigation = useNavigation();
+  const [searchParams] = useSearchParams();
+  
+  const isLogin = searchParams.get('mode') === 'login';
+  const isSubmitting = navigation.state === 'submitting';
+  
+  return (
+    <Form method="post">
+      <h1>{isLogin ? 'Log in' : 'Create a new user'}</h1>
+      
+      {data && data.errors && (
+        <ul>
+          {Object.values(data.errors).map((err) => (
+            <li key={err}>{err}</li>
+          ))}
+        </ul>
+      )}
+      
+      {data && data.message && <p>{data.message}</p>}
+      
+      <p>
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" name="email" required />
+      </p>
+      
+      <p>
+        <label htmlFor="password">Password</label>
+        <input id="password" type="password" name="password" required />
+      </p>
+      
+      <div>
+        <Link to={`?mode=${isLogin ? 'signup' : 'login'}`}>
+          {isLogin ? 'Create new user' : 'Login'}
+        </Link>
+        <button disabled={isSubmitting}>
+          {isSubmitting ? 'Submitting...' : 'Save'}
+        </button>
+      </div>
+    </Form>
+  );
+}
+
+export default AuthForm;
+```
+
+<Tip>
+Use query parameters (`?mode=login` or `?mode=signup`) to toggle between login and signup modes on the same page.
+</Tip>
+
+## Authentication Action
+
+Handle authentication requests using React Router actions:
+
+```javascript
+import { json, redirect } from 'react-router-dom';
+
+export async function action({ request }) {
+  const searchParams = new URL(request.url).searchParams;
+  const mode = searchParams.get('mode') || 'login';
+  
+  if (mode !== 'login' && mode !== 'signup') {
+    throw json({ message: 'Unsupported mode.' }, { status: 422 });
+  }
+  
+  const data = await request.formData();
+  const authData = {
+    email: data.get('email'),
+    password: data.get('password'),
+  };
+  
+  const response = await fetch('http://localhost:8080/' + mode, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(authData),
+  });
+  
+  if (response.status === 422 || response.status === 401) {
+    return response;
+  }
+  
+  if (!response.ok) {
+    throw json({ message: 'Could not authenticate user.' }, { status: 500 });
+  }
+  
+  const resData = await response.json();
+  const token = resData.token;
+  
+  localStorage.setItem('token', token);
+  
+  return redirect('/');
+}
+```
+
+<Warning>
+This example uses localStorage for token storage. For production applications, consider security implications and potentially use httpOnly cookies for sensitive tokens.
+</Warning>
+
+## Token Management
+
+Create utility functions to manage authentication tokens:
+
+```javascript
+// util/auth.js
+import { redirect } from 'react-router-dom';
+
+export function getAuthToken() {
+  const token = localStorage.getItem('token');
+  return token;
+}
+
+export function tokenLoader() {
+  return getAuthToken();
+}
+
+export function checkAuthLoader() {
+  const token = getAuthToken();
+  
+  if (!token) {
+    return redirect('/auth');
+  }
+  
+  return null;
+}
+```
+
+<Info>
+These loader functions can be attached to routes to provide authentication checks and data.
+</Info>
+
+## Route Protection
+
+Protect routes by adding authentication loaders:
+
+<CodeGroup>
+```javascript Protected Routes
+import { checkAuthLoader } from './util/auth';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        path: 'events/new',
+        element: <NewEventPage />,
+        loader: checkAuthLoader, // Protect this route
+        action: newEventAction,
+      },
+      {
+        path: 'events/:eventId/edit',
+        element: <EditEventPage />,
+        loader: checkAuthLoader, // Protect this route
+        action: editEventAction,
+      },
+    ],
+  },
+]);
+```
+
+```javascript Public Routes
+const router = createBrowserRouter([
+  {
+    path: '/auth',
+    element: <AuthenticationPage />,
+    action: authAction,
+  },
+  {
+    path: '/events',
+    element: <EventsPage />,
+    loader: eventsLoader,
+  },
+]);
+```
+</CodeGroup>
+
+## Conditional UI Rendering
+
+Show/hide UI elements based on authentication state:
+
+```javascript
+import { useRouteLoaderData } from 'react-router-dom';
+
+function MainNavigation() {
+  const token = useRouteLoaderData('root');
+  
+  return (
+    <nav>
+      <ul>
+        <li><Link to="/">Home</Link></li>
+        <li><Link to="/events">Events</Link></li>
+        
+        {token && (
+          <>
+            <li><Link to="/events/new">New Event</Link></li>
+            <li>
+              <Form method="post" action="/logout">
+                <button>Logout</button>
+              </Form>
+            </li>
+          </>
+        )}
+        
+        {!token && (
+          <li><Link to="/auth?mode=login">Login</Link></li>
+        )}
+      </ul>
+    </nav>
+  );
+}
+```
+
+<Note>
+`useRouteLoaderData` allows you to access loader data from parent routes using their route ID.
+</Note>
+
+## Logout Implementation
+
+Implement logout functionality:
+
+<CodeGroup>
+```javascript Logout Action
+// pages/Logout.js
+import { redirect } from 'react-router-dom';
+
+export function action() {
+  localStorage.removeItem('token');
+  return redirect('/');
+}
+```
+
+```javascript Route Configuration
+const router = createBrowserRouter([
+  {
+    path: '/logout',
+    action: logoutAction,
+  },
+]);
+```
+
+```javascript Usage in Component
+function Navigation() {
+  return (
+    <Form method="post" action="/logout">
+      <button>Logout</button>
+    </Form>
+  );
+}
+```
+</CodeGroup>
+
+## Authenticated API Requests
+
+Include authentication tokens in API requests:
+
+```javascript
+import { getAuthToken } from './auth';
+
+export async function createEvent(eventData) {
+  const token = getAuthToken();
+  
+  const response = await fetch('http://localhost:8080/events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+    },
+    body: JSON.stringify(eventData),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to create event');
+  }
+  
+  return response.json();
+}
+```
+
+<Tip>
+Include the token in the Authorization header as a Bearer token for API authentication.
+</Tip>
+
+## Token Expiration
+
+Handle token expiration and automatic logout:
+
+```javascript
+export function getTokenDuration() {
+  const storedExpirationDate = localStorage.getItem('expiration');
+  const expirationDate = new Date(storedExpirationDate);
+  const now = new Date();
+  const duration = expirationDate.getTime() - now.getTime();
+  
+  return duration;
+}
+
+export function getAuthToken() {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    return null;
+  }
+  
+  const tokenDuration = getTokenDuration();
+  
+  if (tokenDuration < 0) {
+    return 'EXPIRED';
+  }
+  
+  return token;
+}
+
+export function tokenLoader() {
+  const token = getAuthToken();
+  
+  if (token === 'EXPIRED') {
+    localStorage.removeItem('token');
+    localStorage.removeItem('expiration');
+    return null;
+  }
+  
+  return token;
+}
+```
+
+## Auto-Logout Timer
+
+Implement automatic logout when token expires:
+
+```javascript
+import { useEffect } from 'react';
+import { useNavigate, useLoaderData, useSubmit } from 'react-router-dom';
+import { getTokenDuration } from './util/auth';
+
+function App() {
+  const token = useLoaderData();
+  const submit = useSubmit();
+  
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    
+    if (token === 'EXPIRED') {
+      submit(null, { action: '/logout', method: 'post' });
+      return;
+    }
+    
+    const tokenDuration = getTokenDuration();
+    
+    const logoutTimer = setTimeout(() => {
+      submit(null, { action: '/logout', method: 'post' });
+    }, tokenDuration);
+    
+    return () => {
+      clearTimeout(logoutTimer);
+    };
+  }, [token, submit]);
+  
+  return <RouterProvider router={router} />;
+}
+```
+
+## Security Best Practices
+
+<AccordionGroup>
+<Accordion title="Token storage" icon="database">
+**Development**: localStorage is convenient for development and non-sensitive applications.
+
+**Production**: Consider using httpOnly cookies for storing authentication tokens to prevent XSS attacks:
+
+```javascript
+// Server sets httpOnly cookie
+res.cookie('token', token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'strict',
+  maxAge: 3600000,
+});
+```
+</Accordion>
+
+<Accordion title="Token validation" icon="check">
+Always validate tokens on the server side:
+
+```javascript
+// Server-side validation
+const isValidToken = await verifyJWT(token);
+
+if (!isValidToken) {
+  return res.status(401).json({ message: 'Invalid token' });
+}
+```
+</Accordion>
+
+<Accordion title="Error handling" icon="triangle-exclamation">
+Handle authentication errors gracefully:
+
+```javascript
+if (response.status === 401) {
+  // Token expired or invalid
+  localStorage.removeItem('token');
+  return redirect('/auth?error=session-expired');
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Common Patterns
+
+<CardGroup cols={2}>
+<Card title="Persistent Login" icon="clock">
+Store token expiration time:
+```javascript
+const expirationTime = new Date();
+expirationTime.setHours(
+  expirationTime.getHours() + 1
+);
+localStorage.setItem(
+  'expiration',
+  expirationTime.toISOString()
+);
+```
+</Card>
+
+<Card title="Refresh Tokens" icon="rotate">
+Implement token refresh mechanism:
+```javascript
+async function refreshToken() {
+  const response = await fetch(
+    '/api/refresh',
+    {
+      method: 'POST',
+      credentials: 'include',
+    }
+  );
+  return response.json();
+}
+```
+</Card>
+</CardGroup>
+
+## Related Topics
+
+<CardGroup cols={2}>
+<Card title="Routing" icon="route" href="/production/routing">
+Learn about React Router setup and navigation
+</Card>
+
+<Card title="Deployment" icon="rocket" href="/production/deployment">
+Deploy authenticated applications securely
+</Card>
+</CardGroup>

@@ -1,0 +1,622 @@
+---
+title: 'React Quiz Application'
+description: 'Build an interactive quiz app with timers, answer validation, and results using useEffect and side effects'
+icon: 'circle-question'
+---
+
+## Project Overview
+
+The React Quiz project from Section 13 demonstrates how to build an interactive quiz application that tests React concepts. This demo project focuses heavily on `useEffect`, timer management, and handling side effects properly.
+
+<Frame>
+  <img src="/images/react-quiz-preview.png" alt="React Quiz Application" />
+</Frame>
+
+## Learning Objectives
+
+<CardGroup cols={2}>
+  <Card title="useEffect Hook" icon="rotate">
+    Manage side effects and lifecycle events
+  </Card>
+  <Card title="Timer Management" icon="clock">
+    Create and cleanup timers with useEffect
+  </Card>
+  <Card title="Derived State" icon="code-branch">
+    Calculate values from existing state
+  </Card>
+  <Card title="useCallback" icon="arrows-spin">
+    Optimize function references for dependencies
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Quiz Functionality
+
+<AccordionGroup>
+  <Accordion title="Question Progression">
+    Quiz automatically advances through questions, tracking user answers
+    
+    ```jsx Quiz.jsx
+    import { useState, useCallback } from 'react';
+    import QUESTIONS from '../questions.js';
+    import Question from './Question.jsx';
+    import Summary from './Summary.jsx';
+
+    export default function Quiz() {
+      const [userAnswers, setUserAnswers] = useState([]);
+
+      const activeQuestionIndex = userAnswers.length;
+      const quizIsComplete = activeQuestionIndex === QUESTIONS.length;
+
+      const handleSelectAnswer = useCallback(function handleSelectAnswer(
+        selectedAnswer
+      ) {
+        setUserAnswers((prevUserAnswers) => {
+          return [...prevUserAnswers, selectedAnswer];
+        });
+      }, []);
+
+      const handleSkipAnswer = useCallback(
+        () => handleSelectAnswer(null),
+        [handleSelectAnswer]
+      );
+
+      if (quizIsComplete) {
+        return <Summary userAnswers={userAnswers} />
+      }
+
+      return (
+        <div id="quiz">
+          <Question
+            key={activeQuestionIndex}
+            index={activeQuestionIndex}
+            onSelectAnswer={handleSelectAnswer}
+            onSkipAnswer={handleSkipAnswer}
+          />
+        </div>
+      );
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Timer-Based Auto-Skip">
+    Questions automatically skip if not answered within the time limit
+    
+    ```jsx QuestionTimer.jsx
+    import { useState, useEffect } from 'react';
+
+    export default function QuestionTimer({ timeout, onTimeout, mode }) {
+      const [remainingTime, setRemainingTime] = useState(timeout);
+
+      useEffect(() => {
+        console.log('SETTING TIMEOUT');
+        const timer = setTimeout(onTimeout, timeout);
+
+        return () => {
+          clearTimeout(timer);
+        };
+      }, [timeout, onTimeout]);
+
+      useEffect(() => {
+        console.log('SETTING INTERVAL');
+        const interval = setInterval(() => {
+          setRemainingTime((prevRemainingTime) => prevRemainingTime - 100);
+        }, 100);
+
+        return () => {
+          clearInterval(interval);
+        };
+      }, []);
+
+      return (
+        <progress
+          id="question-time"
+          max={timeout}
+          value={remainingTime}
+          className={mode}
+        />
+      );
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Answer Shuffling">
+    Answers are randomly shuffled for each question to prevent pattern memorization
+    
+    ```jsx
+    const shuffledAnswers = [...QUESTIONS[index].answers];
+    shuffledAnswers.sort(() => Math.random() - 0.5);
+    ```
+  </Accordion>
+
+  <Accordion title="Answer Validation">
+    Visual feedback shows whether selected answers are correct or wrong
+    
+    ```jsx Question.jsx
+    function handleSelectAnswer(answer) {
+      setAnswer({
+        selectedAnswer: answer,
+        isCorrect: null,
+      });
+
+      setTimeout(() => {
+        setAnswer({
+          selectedAnswer: answer,
+          isCorrect: QUESTIONS[index].answers[0] === answer,
+        });
+
+        setTimeout(() => {
+          onSelectAnswer(answer);
+        }, 2000);
+      }, 1000);
+    }
+
+    let answerState = '';
+
+    if (answer.selectedAnswer && answer.isCorrect !== null) {
+      answerState = answer.isCorrect ? 'correct' : 'wrong';
+    } else if (answer.selectedAnswer) {
+      answerState = 'answered';
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Core Concepts
+
+### useEffect for Side Effects
+
+<Info>
+**Side effects** are operations that interact with systems outside of React's rendering flow, such as timers, API calls, or manual DOM manipulation.
+</Info>
+
+The project demonstrates multiple useEffect patterns:
+
+<Tabs>
+  <Tab title="Cleanup Functions">
+    ```jsx
+    useEffect(() => {
+      const timer = setTimeout(onTimeout, timeout);
+
+      // Cleanup function runs when component unmounts
+      // or before effect runs again
+      return () => {
+        clearTimeout(timer);
+      };
+    }, [timeout, onTimeout]);
+    ```
+  </Tab>
+  
+  <Tab title="Empty Dependencies">
+    ```jsx
+    // Runs once on mount, cleanup on unmount
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setRemainingTime((prev) => prev - 100);
+      }, 100);
+
+      return () => {
+        clearInterval(interval);
+      };
+    }, []); // Empty array = run once
+    ```
+  </Tab>
+  
+  <Tab title="With Dependencies">
+    ```jsx
+    // Runs when dependencies change
+    useEffect(() => {
+      console.log('Question changed');
+      // Reset state or perform actions
+    }, [activeQuestionIndex, selectedAnswer]);
+    ```
+  </Tab>
+</Tabs>
+
+### Derived State Pattern
+
+Instead of storing computed values in state, derive them:
+
+```jsx
+const [userAnswers, setUserAnswers] = useState([]);
+
+// Derived values - no separate state needed
+const activeQuestionIndex = userAnswers.length;
+const quizIsComplete = activeQuestionIndex === QUESTIONS.length;
+const selectedProject = projects.find(p => p.id === selectedProjectId);
+```
+
+<Warning>
+**Don't store derived state!** If a value can be calculated from existing state, compute it during render instead of storing it separately.
+</Warning>
+
+### useCallback for Stable References
+
+```jsx
+const handleSelectAnswer = useCallback(function handleSelectAnswer(
+  selectedAnswer
+) {
+  setUserAnswers((prevUserAnswers) => {
+    return [...prevUserAnswers, selectedAnswer];
+  });
+}, []); // No dependencies - function never changes
+
+const handleSkipAnswer = useCallback(
+  () => handleSelectAnswer(null),
+  [handleSelectAnswer]  // Depends on handleSelectAnswer
+);
+```
+
+<Info>
+`useCallback` memoizes function references, preventing unnecessary re-renders when functions are passed as props or used in effect dependencies.
+</Info>
+
+## Question Component Architecture
+
+The Question component manages the answer selection flow:
+
+```jsx Question.jsx
+import { useState } from 'react';
+import QuestionTimer from './QuestionTimer.jsx';
+import Answers from './Answers.jsx';
+import QUESTIONS from '../questions.js';
+
+export default function Question({ index, onSelectAnswer, onSkipAnswer }) {
+  const [answer, setAnswer] = useState({
+    selectedAnswer: '',
+    isCorrect: null,
+  });
+
+  // Different timeout durations based on answer state
+  let timer = 10000;  // 10s to answer
+
+  if (answer.selectedAnswer) {
+    timer = 1000;  // 1s to check answer
+  }
+
+  if (answer.isCorrect !== null) {
+    timer = 2000;  // 2s to show result
+  }
+
+  function handleSelectAnswer(answer) {
+    setAnswer({
+      selectedAnswer: answer,
+      isCorrect: null,
+    });
+
+    // Show "checking" state for 1 second
+    setTimeout(() => {
+      setAnswer({
+        selectedAnswer: answer,
+        isCorrect: QUESTIONS[index].answers[0] === answer,
+      });
+
+      // Show result for 2 seconds, then move to next
+      setTimeout(() => {
+        onSelectAnswer(answer);
+      }, 2000);
+    }, 1000);
+  }
+
+  let answerState = '';
+
+  if (answer.selectedAnswer && answer.isCorrect !== null) {
+    answerState = answer.isCorrect ? 'correct' : 'wrong';
+  } else if (answer.selectedAnswer) {
+    answerState = 'answered';
+  }
+
+  return (
+    <div id="question">
+      <QuestionTimer
+        key={timer}
+        timeout={timer}
+        onTimeout={answer.selectedAnswer === '' ? onSkipAnswer : null}
+        mode={answerState}
+      />
+      <h2>{QUESTIONS[index].text}</h2>
+      <Answers
+        answers={QUESTIONS[index].answers}
+        selectedAnswer={answer.selectedAnswer}
+        answerState={answerState}
+        onSelect={handleSelectAnswer}
+      />
+    </div>
+  );
+}
+```
+
+## Timer Implementation
+
+### Multiple Effect Pattern
+
+The QuestionTimer uses two separate effects:
+
+<Steps>
+  <Step title="Timeout Effect">
+    Triggers the skip/advance action after the full timeout period
+    ```jsx
+    useEffect(() => {
+      const timer = setTimeout(onTimeout, timeout);
+      return () => clearTimeout(timer);
+    }, [timeout, onTimeout]);
+    ```
+  </Step>
+  
+  <Step title="Interval Effect">
+    Updates the progress bar every 100ms
+    ```jsx
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setRemainingTime((prev) => prev - 100);
+      }, 100);
+      return () => clearInterval(interval);
+    }, []);
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+**Always cleanup timers!** Failing to clear timers in cleanup functions can cause memory leaks and unexpected behavior.
+</Warning>
+
+## Key Component Pattern
+
+### Resetting Components with Key Prop
+
+```jsx
+<QuestionTimer
+  key={timer}  // Changes = component remounts
+  timeout={timer}
+  onTimeout={answer.selectedAnswer === '' ? onSkipAnswer : null}
+  mode={answerState}
+/>
+```
+
+When the `key` prop changes, React:
+1. Unmounts the old component (running cleanup)
+2. Mounts a new component (running effects)
+
+<Info>
+This pattern is perfect for resetting timers and state when moving between questions.
+</Info>
+
+## Question Data Structure
+
+```javascript questions.js
+export default [
+  {
+    id: 'q1',
+    text: 'Which of the following definitions best describes React.js?',
+    answers: [
+      'A library to build user interfaces with help of declarative code.',
+      'A library for managing state in web applications.',
+      'A framework to build user interfaces with help of imperative code.',
+      'A library used for building mobile applications only.',
+    ],
+  },
+  // ... more questions
+];
+```
+
+<Note>
+The first answer in the array is always the correct one. Answers are shuffled when displayed.
+</Note>
+
+## Project Structure
+
+```bash
+13-demo-project-react-quiz/
+├── src/
+│   ├── components/
+│   │   ├── Answers.jsx         # Answer button list
+│   │   ├── Header.jsx          # Quiz header
+│   │   ├── Question.jsx        # Single question component
+│   │   ├── QuestionTimer.jsx   # Timer with progress bar
+│   │   ├── Quiz.jsx            # Main quiz logic
+│   │   └── Summary.jsx         # Results summary
+│   ├── questions.js            # Question data
+│   ├── App.jsx                 # App wrapper
+│   └── main.jsx                # Entry point
+├── public/
+│   └── quiz-logo.png           # Quiz logo
+└── index.html
+```
+
+## Implementation Steps
+
+<Steps>
+  <Step title="Basic Structure">
+    Set up the Quiz component with Header and basic question display
+  </Step>
+  
+  <Step title="State Management">
+    Add state for tracking user answers and derive active question index
+  </Step>
+  
+  <Step title="Question Output">
+    Dynamically render questions based on active index
+  </Step>
+  
+  <Step title="Answer Shuffling">
+    Implement logic to shuffle answers randomly
+  </Step>
+  
+  <Step title="Timer Implementation">
+    Create QuestionTimer with useEffect and cleanup
+  </Step>
+  
+  <Step title="Effect Dependencies">
+    Properly configure useEffect dependencies with useCallback
+  </Step>
+  
+  <Step title="Component Logic Separation">
+    Extract Question component with its own state and logic
+  </Step>
+  
+  <Step title="Summary Screen">
+    Display quiz results with correct/wrong/skipped breakdown
+  </Step>
+</Steps>
+
+## Common Patterns & Solutions
+
+### Effect Cleanup
+
+<AccordionGroup>
+  <Accordion title="Why Cleanup Functions Matter">
+    Without cleanup, timers continue running after component unmounts:
+    
+    ```jsx
+    // BAD - No cleanup
+    useEffect(() => {
+      setTimeout(() => {
+        console.log('This runs even after unmount!');
+      }, 5000);
+    }, []);
+    
+    // GOOD - With cleanup
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        console.log('This is cancelled on unmount');
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }, []);
+    ```
+  </Accordion>
+  
+  <Accordion title="When Cleanup Runs">
+    Cleanup functions run:
+    1. Before the effect runs again (when dependencies change)
+    2. When the component unmounts
+    
+    ```jsx
+    useEffect(() => {
+      console.log('Effect running');
+      
+      return () => {
+        console.log('Cleanup running');
+      };
+    }, [dependency]);
+    
+    // Logs:
+    // Effect running
+    // [dependency changes]
+    // Cleanup running
+    // Effect running
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Answer State Management
+
+```jsx
+const [answer, setAnswer] = useState({
+  selectedAnswer: '',    // Which answer was clicked
+  isCorrect: null,       // null = checking, true/false = result
+});
+
+// State transitions:
+// 1. Initial: { selectedAnswer: '', isCorrect: null }
+// 2. Selected: { selectedAnswer: 'A library...', isCorrect: null }
+// 3. Validated: { selectedAnswer: 'A library...', isCorrect: true }
+```
+
+## Styling & Visual Feedback
+
+The quiz uses CSS classes to show answer states:
+
+```jsx
+<li className="answer">
+  <button
+    onClick={() => onSelect(answer)}
+    className={answerState}  // '', 'answered', 'correct', or 'wrong'
+    disabled={answerState !== ''}
+  >
+    {answer}
+  </button>
+</li>
+```
+
+<CodeGroup>
+```css Answer States
+.answer.answered {
+  background-color: #ffd500;
+  color: #2c2c2c;
+}
+
+.answer.correct {
+  background-color: #5dd589;
+  color: #2c2c2c;
+}
+
+.answer.wrong {
+  background-color: #ff6b6b;
+  color: white;
+}
+```
+
+```css Progress Bar
+progress {
+  width: 100%;
+  height: 0.5rem;
+}
+
+progress.answered {
+  --progress-color: #ffd500;
+}
+
+progress.correct {
+  --progress-color: #5dd589;
+}
+
+progress.wrong {
+  --progress-color: #ff6b6b;
+}
+```
+</CodeGroup>
+
+## Testing Checklist
+
+<Checklist>
+  - [ ] Quiz displays first question correctly
+  - [ ] Answers are shuffled (different order each time)
+  - [ ] Timer counts down and auto-skips after timeout
+  - [ ] Can select an answer
+  - [ ] Answer shows "checking" state briefly
+  - [ ] Correct answers show green feedback
+  - [ ] Wrong answers show red feedback
+  - [ ] Automatically advances to next question
+  - [ ] Summary shows correct statistics
+  - [ ] No console errors or warnings
+</Checklist>
+
+## Key Takeaways
+
+<CardGroup cols={2}>
+  <Card title="useEffect Mastery" icon="rotate">
+    Learn when and how to use effects with proper cleanup
+  </Card>
+  <Card title="Derived State" icon="code-branch">
+    Calculate values instead of storing duplicates
+  </Card>
+  <Card title="Timer Management" icon="clock">
+    Handle timeouts and intervals safely
+  </Card>
+  <Card title="Component Reset" icon="key">
+    Use key prop to reset component state
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Food Order Project" icon="arrow-right" href="/projects/food-order">
+    Build with Context API and HTTP requests
+  </Card>
+  <Card title="Side Effects Deep Dive" icon="book" href="/essentials/use-effect">
+    Learn more about useEffect patterns
+  </Card>
+</CardGroup>

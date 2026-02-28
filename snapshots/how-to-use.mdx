@@ -1,0 +1,283 @@
+---
+title: 'How to Use Code Snapshots'
+description: 'Step-by-step guide to running and working with course code snapshots'
+icon: 'play'
+---
+
+## Quick Start
+
+Follow these steps to run any code snapshot on your local machine:
+
+<Steps>
+  <Step title="Navigate to the snapshot folder">
+    Open your terminal and navigate to the specific snapshot you want to use:
+    
+    ```bash
+    cd code/03\ React\ Essentials/01-starting-project
+    ```
+    
+    <Tip>
+      Use tab completion in your terminal to avoid typing the full path with spaces.
+    </Tip>
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all required npm packages:
+    
+    ```bash
+    npm install
+    ```
+    
+    This downloads all dependencies listed in `package.json`. The first install may take a few minutes.
+    
+    <Warning>
+      Make sure you have Node.js installed (version 18 or higher recommended). Check with `node --version`.
+    </Warning>
+  </Step>
+
+  <Step title="Start the development server">
+    Run the development server:
+    
+    ```bash
+    npm run dev
+    ```
+    
+    Your application will start, typically at `http://localhost:5173` (for Vite projects) or `http://localhost:3000` (for Create React App projects).
+  </Step>
+
+  <Step title="Open in browser">
+    Open the URL shown in your terminal in your web browser. You should see the application running exactly as it appears in the course video.
+  </Step>
+</Steps>
+
+## Comparing Your Code
+
+When your code isn't working as expected, use this workflow:
+
+<AccordionGroup>
+  <Accordion title="Visual Comparison" icon="eye">
+    1. Open the snapshot folder in your code editor
+    2. Open your project folder in a separate window
+    3. Compare files side-by-side
+    
+    **VS Code Tip:** Right-click a file and select "Compare with..." to see a diff view.
+    
+    ```bash
+    # Or use diff in terminal
+    diff your-project/src/App.jsx code/03\ React\ Essentials/02-creating-using-first-component/src/App.jsx
+    ```
+  </Accordion>
+
+  <Accordion title="File-by-File Review" icon="file">
+    Focus on the files you've been working on:
+    
+    - **Components** - Check component structure, props, and JSX
+    - **State management** - Verify `useState`, `useReducer` calls
+    - **Event handlers** - Ensure functions are properly bound
+    - **Imports** - Confirm all imports are correct and paths match
+    
+    <Tip>
+      Start with the file mentioned in any error messages, then work backwards through the component tree.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Console & Network" icon="bug">
+    Check browser developer tools:
+    
+    - **Console tab** - Look for JavaScript errors or warnings
+    - **Network tab** - Verify API calls and asset loading
+    - **React DevTools** - Inspect component props and state
+    
+    Compare the console output between your project and the snapshot.
+  </Accordion>
+</AccordionGroup>
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Starting a New Section" icon="rocket">
+    **Scenario:** You want to begin Section 10 without completing Section 9.
+    
+    **Solution:**
+    ```bash
+    cd code/10\ Advanced\ State\ Management/01-starting-project
+    npm install
+    npm run dev
+    ```
+    
+    You now have the starting point for Section 10 ready to go.
+  </Card>
+
+  <Card title="Debugging Issues" icon="wrench">
+    **Scenario:** Your app crashes but it works in the video.
+    
+    **Solution:**
+    1. Find the corresponding snapshot
+    2. Run the snapshot to confirm it works
+    3. Compare your code file-by-file
+    4. Focus on recently changed files
+  </Card>
+
+  <Card title="Skipping Ahead" icon="forward-fast">
+    **Scenario:** You want to see the finished version before coding.
+    
+    **Solution:**
+    Look for folders named `finished`, `final`, or numbered highest in the section.
+    
+    ```bash
+    cd code/07\ Styling/08-finished
+    npm install && npm run dev
+    ```
+  </Card>
+
+  <Card title="Experimenting" icon="flask">
+    **Scenario:** You want to test modifications without breaking your code.
+    
+    **Solution:**
+    1. Copy a snapshot to a new location
+    2. Make your experimental changes
+    3. Keep your original code intact
+    
+    ```bash
+    cp -r code/11\ Side\ Effects/03-useeffect-not-needed ~/experiments/
+    ```
+  </Card>
+</CardGroup>
+
+## Working with Different Project Types
+
+The course uses different build tools throughout:
+
+<Tabs>
+  <Tab title="Vite Projects">
+    Most modern sections use Vite:
+    
+    ```bash
+    npm install
+    npm run dev    # Starts dev server
+    npm run build  # Creates production build
+    ```
+    
+    Default URL: `http://localhost:5173`
+  </Tab>
+
+  <Tab title="Next.js Projects">
+    Sections 25-25b use Next.js:
+    
+    ```bash
+    npm install
+    npm run dev    # Starts Next.js dev server
+    npm run build  # Creates optimized build
+    npm start      # Runs production build
+    ```
+    
+    Default URL: `http://localhost:3000`
+  </Tab>
+
+  <Tab title="Create React App">
+    Some earlier sections may use CRA:
+    
+    ```bash
+    npm install
+    npm start      # Starts dev server
+    npm run build  # Creates production build
+    ```
+    
+    Default URL: `http://localhost:3000`
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="npm install fails" icon="circle-xmark">
+    **Problem:** Dependency installation errors
+    
+    **Solutions:**
+    - Update Node.js to version 18 or higher
+    - Clear npm cache: `npm cache clean --force`
+    - Delete `node_modules` and `package-lock.json`, then retry
+    - Try `npm install --legacy-peer-deps`
+  </Accordion>
+
+  <Accordion title="Port already in use" icon="circle-xmark">
+    **Problem:** Error: Port 5173 (or 3000) is already in use
+    
+    **Solutions:**
+    - Stop other development servers
+    - Kill the process using the port:
+      ```bash
+      # Find and kill process on port 5173
+      lsof -ti:5173 | xargs kill -9
+      ```
+    - Use a different port: `npm run dev -- --port 3001`
+  </Accordion>
+
+  <Accordion title="Code doesn't match video" icon="circle-xmark">
+    **Problem:** Snapshot code looks different from the video
+    
+    **Explanation:**
+    This is normal! The course may have been updated, or you might be looking at a different snapshot stage.
+    
+    **Solutions:**
+    - Check the snapshot folder name (starting vs intermediate vs finished)
+    - Verify you're in the correct section folder
+    - Remember that snapshots reflect the exact moment they were captured
+  </Accordion>
+
+  <Accordion title="Module not found errors" icon="circle-xmark">
+    **Problem:** Cannot find module 'react' or other packages
+    
+    **Solutions:**
+    - Ensure you ran `npm install` in the correct directory
+    - Check that `node_modules` folder exists
+    - Verify `package.json` is in the same directory
+    - Try deleting `node_modules` and reinstalling
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  If you're still experiencing issues after trying these solutions, post in the course Q&A section with:
+  - The specific section and snapshot name
+  - Your Node.js version (`node --version`)
+  - The complete error message
+  - Your operating system
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Code Along First" icon="keyboard">
+    Always try to code along with the lectures before checking snapshots. This reinforces learning and helps identify where you might need extra practice.
+  </Card>
+
+  <Card title="Don't Copy-Paste" icon="ban">
+    When comparing code, type the corrections manually rather than copying. This helps build muscle memory and understanding.
+  </Card>
+
+  <Card title="Keep Snapshots Clean" icon="broom">
+    Don't modify the original snapshot folders. Copy them elsewhere if you want to experiment, keeping the originals as reference.
+  </Card>
+
+  <Card title="Use Version Control" icon="git">
+    Initialize a git repository for your project to track your own changes:
+    
+    ```bash
+    git init
+    git add .
+    git commit -m "Initial commit"
+    ```
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Browse All Sections" icon="list" href="/snapshots/section-index">
+    View the complete index of all 34 course sections and their available snapshots
+  </Card>
+  
+  <Card title="Lecture Attachments" icon="paperclip" href="/attachments/overview">
+    Learn about standalone code files and resources attached to specific lectures
+  </Card>
+</CardGroup>

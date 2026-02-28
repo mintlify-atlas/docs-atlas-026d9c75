@@ -1,0 +1,583 @@
+---
+title: 'React Query for Data Fetching'
+description: 'Master data fetching and state management with TanStack Query (React Query) including queries, mutations, caching, and optimistic updates'
+icon: 'database'
+---
+
+## Overview
+
+TanStack Query (formerly React Query) is a powerful library for fetching, caching, and updating server state in React applications. It eliminates the need for manual data fetching logic and provides automatic caching, background refetching, and request deduplication.
+
+<Info>
+React Query handles the complexities of data synchronization between your server and client, providing a better developer experience than traditional data fetching approaches.
+</Info>
+
+## Installation and Setup
+
+Install TanStack Query:
+
+```bash
+npm install @tanstack/react-query
+```
+
+### QueryClient Configuration
+
+Set up the QueryClientProvider in your app root:
+
+```javascript
+import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+
+const queryClient = new QueryClient();
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Navigate to="/events" />,
+  },
+  {
+    path: '/events',
+    element: <Events />,
+    children: [
+      {
+        path: '/events/new',
+        element: <NewEvent />,
+      },
+    ],
+  },
+]);
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
+}
+
+export default App;
+```
+
+<Note>
+The QueryClient instance manages the query cache and global configuration for all queries in your application.
+</Note>
+
+## Basic Query Usage
+
+Fetch data using the `useQuery` hook:
+
+<CodeGroup>
+```javascript Component
+import { useQuery } from '@tanstack/react-query';
+import LoadingIndicator from '../UI/LoadingIndicator.jsx';
+import ErrorBlock from '../UI/ErrorBlock.jsx';
+import EventItem from './EventItem.jsx';
+import { fetchEvents } from '../../util/http.js';
+
+export default function NewEventsSection() {
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: ['events'],
+    queryFn: fetchEvents,
+  });
+  
+  let content;
+  
+  if (isPending) {
+    content = <LoadingIndicator />;
+  }
+  
+  if (isError) {
+    content = (
+      <ErrorBlock
+        title="An error occurred"
+        message={error.info?.message || 'Failed to fetch events.'}
+      />
+    )
+  }
+  
+  if (data) {
+    content = (
+      <ul className="events-list">
+        {data.map((event) => (
+          <li key={event.id}>
+            <EventItem event={event} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  
+  return (
+    <section className="content-section" id="new-events-section">
+      <header>
+        <h2>Recently added events</h2>
+      </header>
+      {content}
+    </section>
+  );
+}
+```
+
+```javascript API Function
+export async function fetchEvents() {
+  const response = await fetch('http://localhost:3000/events');
+  
+  if (!response.ok) {
+    const error = new Error('An error occurred while fetching events');
+    error.code = response.status;
+    error.info = await response.json();
+    throw error;
+  }
+  
+  const { events } = await response.json();
+  return events;
+}
+```
+</CodeGroup>
+
+<Tip>
+The `queryKey` uniquely identifies the query and is used for caching. Use an array to include dynamic parameters: `['events', { type: 'recent' }]`.
+</Tip>
+
+## Query States
+
+React Query provides several state flags:
+
+<CardGroup cols={2}>
+<Card title="isPending" icon="spinner">
+Query is currently fetching for the first time
+</Card>
+
+<Card title="isError" icon="circle-xmark">
+Query encountered an error
+</Card>
+
+<Card title="isSuccess" icon="circle-check">
+Query successfully fetched data
+</Card>
+
+<Card title="isFetching" icon="arrows-rotate">
+Query is fetching (including background refetches)
+</Card>
+</CardGroup>
+
+## Mutations for Data Changes
+
+Use `useMutation` to create, update, or delete data:
+
+```javascript
+import { Link, useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import Modal from '../UI/Modal.jsx';
+import EventForm from './EventForm.jsx';
+import { createNewEvent } from '../../util/http.js';
+import ErrorBlock from '../UI/ErrorBlock.jsx';
+
+export default function NewEvent() {
+  const navigate = useNavigate();
+  
+  const { mutate, isPending, isError, error } = useMutation({
+    mutationFn: createNewEvent,
+  });
+  
+  function handleSubmit(formData) {
+    mutate({ event: formData });
+  }
+  
+  return (
+    <Modal onClose={() => navigate('../')}>
+      <EventForm onSubmit={handleSubmit}>
+        {isPending && 'Submitting...'}
+        {!isPending && (
+          <>
+            <Link to="../" className="button-text">
+              Cancel
+            </Link>
+            <button type="submit" className="button">
+              Create
+            </button>
+          </>
+        )}
+      </EventForm>
+      {isError && (
+        <ErrorBlock
+          title="Failed to create event"
+          message={
+            error.info?.message ||
+            'Failed to create event. Please check your inputs and try again later.'
+          }
+        />
+      )}
+    </Modal>
+  );
+}
+```
+
+<Warning>
+Mutations don't automatically refetch queries. You need to invalidate or update the cache manually.
+</Warning>
+
+## Invalidating Queries
+
+Refresh cached data after mutations:
+
+```javascript
+import { useMutation } from '@tanstack/react-query';
+import { queryClient } from '../../util/http.js';
+
+export default function NewEvent() {
+  const navigate = useNavigate();
+  
+  const { mutate, isPending, isError, error } = useMutation({
+    mutationFn: createNewEvent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      navigate('/events');
+    },
+  });
+  
+  function handleSubmit(formData) {
+    mutate({ event: formData });
+  }
+  
+  // ... rest of component
+}
+```
+
+<Info>
+`invalidateQueries` marks queries as stale and triggers a refetch if they're currently being used.
+</Info>
+
+## Query Configuration Options
+
+Customize query behavior:
+
+<CodeGroup>
+```javascript Stale Time
+const { data } = useQuery({
+  queryKey: ['events'],
+  queryFn: fetchEvents,
+  staleTime: 5000, // Data stays fresh for 5 seconds
+});
+```
+
+```javascript Cache Time
+const { data } = useQuery({
+  queryKey: ['events'],
+  queryFn: fetchEvents,
+  cacheTime: 30000, // Keep in cache for 30 seconds after unused
+});
+```
+
+```javascript Refetch Interval
+const { data } = useQuery({
+  queryKey: ['events'],
+  queryFn: fetchEvents,
+  refetchInterval: 10000, // Refetch every 10 seconds
+});
+```
+
+```javascript Conditional Fetching
+const { data } = useQuery({
+  queryKey: ['event', eventId],
+  queryFn: () => fetchEvent(eventId),
+  enabled: !!eventId, // Only fetch when eventId exists
+});
+```
+</CodeGroup>
+
+## Dynamic Queries
+
+Fetch data based on user input or state:
+
+```javascript
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { fetchEvents } from '../../util/http.js';
+
+export default function FindEventSection() {
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['events', { search: searchTerm }],
+    queryFn: () => fetchEvents({ search: searchTerm }),
+    enabled: searchTerm.length > 0,
+  });
+  
+  return (
+    <section>
+      <input
+        type="search"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search events..."
+      />
+      
+      {isLoading && <p>Loading...</p>}
+      {isError && <p>Error: {error.message}</p>}
+      
+      {data && (
+        <ul>
+          {data.map((event) => (
+            <li key={event.id}>{event.title}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+```
+
+<Tip>
+Include dynamic parameters in the `queryKey` array so React Query caches results separately for different search terms.
+</Tip>
+
+## Optimistic Updates
+
+Update the UI immediately before the server responds:
+
+```javascript
+const { mutate } = useMutation({
+  mutationFn: updateEvent,
+  onMutate: async (newEvent) => {
+    // Cancel outgoing refetches
+    await queryClient.cancelQueries({ queryKey: ['events', newEvent.id] });
+    
+    // Snapshot the previous value
+    const previousEvent = queryClient.getQueryData(['events', newEvent.id]);
+    
+    // Optimistically update to the new value
+    queryClient.setQueryData(['events', newEvent.id], newEvent);
+    
+    // Return context with the previous value
+    return { previousEvent };
+  },
+  onError: (err, newEvent, context) => {
+    // Rollback to previous value on error
+    queryClient.setQueryData(
+      ['events', newEvent.id],
+      context.previousEvent
+    );
+  },
+  onSettled: (newEvent) => {
+    // Refetch after error or success
+    queryClient.invalidateQueries({ queryKey: ['events', newEvent.id] });
+  },
+});
+```
+
+<Warning>
+Always implement error handling to rollback optimistic updates when mutations fail.
+</Warning>
+
+## Global Query Configuration
+
+Set default options for all queries:
+
+```javascript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      cacheTime: 1000 * 60 * 10, // 10 minutes
+      retry: 3,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
+```
+
+## Pagination
+
+Implement paginated queries:
+
+```javascript
+const [page, setPage] = useState(1);
+
+const { data, isPreviousData } = useQuery({
+  queryKey: ['events', page],
+  queryFn: () => fetchEvents({ page }),
+  keepPreviousData: true, // Keep old data while fetching new page
+});
+
+return (
+  <div>
+    <EventsList events={data?.events} />
+    
+    <button
+      onClick={() => setPage((old) => Math.max(old - 1, 1))}
+      disabled={page === 1}
+    >
+      Previous
+    </button>
+    
+    <button
+      onClick={() => setPage((old) => old + 1)}
+      disabled={isPreviousData || !data?.hasMore}
+    >
+      Next
+    </button>
+  </div>
+);
+```
+
+## Infinite Queries
+
+Implement infinite scroll:
+
+```javascript
+import { useInfiniteQuery } from '@tanstack/react-query';
+
+function Events() {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['events'],
+    queryFn: ({ pageParam = 1 }) => fetchEvents({ page: pageParam }),
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.hasMore ? pages.length + 1 : undefined;
+    },
+  });
+  
+  return (
+    <div>
+      {data?.pages.map((page, i) => (
+        <div key={i}>
+          {page.events.map((event) => (
+            <EventItem key={event.id} event={event} />
+          ))}
+        </div>
+      ))}
+      
+      <button
+        onClick={() => fetchNextPage()}
+        disabled={!hasNextPage || isFetchingNextPage}
+      >
+        {isFetchingNextPage
+          ? 'Loading more...'
+          : hasNextPage
+          ? 'Load More'
+          : 'Nothing more to load'}
+      </button>
+    </div>
+  );
+}
+```
+
+## DevTools
+
+Add React Query DevTools for debugging:
+
+```javascript
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+```
+
+<Tip>
+DevTools only appear in development and help you visualize query states, cache contents, and refetch behavior.
+</Tip>
+
+## Comparison with React Router Loaders
+
+<AccordionGroup>
+<Accordion title="React Query Advantages" icon="plus">
+- Automatic caching and background refetching
+- Built-in loading and error states
+- Request deduplication
+- Optimistic updates
+- Better for frequently changing data
+</Accordion>
+
+<Accordion title="React Router Loader Advantages" icon="route">
+- Loads data before rendering (no loading spinner)
+- Tightly integrated with navigation
+- Simpler for static or infrequently changing data
+- Better for initial page load performance
+</Accordion>
+
+<Accordion title="When to Use Each" icon="scale-balanced">
+**Use React Query when:**
+- Data changes frequently
+- Multiple components need the same data
+- You need background refetching
+- Optimistic updates are important
+
+**Use React Router Loaders when:**
+- Data is relatively static
+- Initial page load speed is critical
+- Data is route-specific
+- Simple read-only scenarios
+</Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+<Card title="Query Keys" icon="key">
+Use descriptive, hierarchical keys:
+```javascript
+['events']
+['events', { type: 'recent' }]
+['events', eventId]
+['events', eventId, 'attendees']
+```
+</Card>
+
+<Card title="Error Handling" icon="triangle-exclamation">
+Throw custom errors in query functions:
+```javascript
+if (!response.ok) {
+  const error = new Error('Failed');
+  error.info = await response.json();
+  throw error;
+}
+```
+</Card>
+
+<Card title="Avoid Over-fetching" icon="ban">
+Use `enabled` to prevent unnecessary requests:
+```javascript
+useQuery({
+  queryKey: ['user', userId],
+  queryFn: fetchUser,
+  enabled: !!userId,
+});
+```
+</Card>
+
+<Card title="Separate Concerns" icon="layer-group">
+Keep API functions in separate files:
+```javascript
+// util/http.js
+export async function fetchEvents() {
+  // API logic
+}
+```
+</Card>
+</CardGroup>
+
+## Related Topics
+
+<CardGroup cols={2}>
+<Card title="Routing" icon="route" href="/production/routing">
+Compare React Query with React Router data loading
+</Card>
+
+<Card title="Deployment" icon="rocket" href="/production/deployment">
+Deploy applications using React Query
+</Card>
+</CardGroup>

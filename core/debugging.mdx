@@ -1,0 +1,406 @@
+---
+title: Debugging React
+description: Debugging techniques, tools, and best practices for React applications
+icon: bug
+---
+
+<Info>
+Learn how to effectively debug React applications using browser DevTools, React DevTools, and other techniques.
+</Info>
+
+## Understanding Error Messages
+
+React provides helpful error messages when something goes wrong.
+
+### Common Error Types
+
+<AccordionGroup>
+  <Accordion title="Syntax Errors">
+    Caught during build time by your bundler:
+    
+    ```bash
+    Error: Unexpected token
+    ```
+    
+    Usually caused by:
+    - Missing closing brackets/parentheses
+    - Invalid JSX syntax
+    - Typos in code
+  </Accordion>
+  
+  <Accordion title="Runtime Errors">
+    Occur when your app is running:
+    
+    ```bash
+    TypeError: Cannot read property 'map' of undefined
+    ```
+    
+    Usually caused by:
+    - Accessing undefined values
+    - Incorrect prop types
+    - Missing dependencies
+  </Accordion>
+  
+  <Accordion title="Logic Errors">
+    Code runs but produces incorrect results:
+    - State not updating as expected
+    - Wrong calculations
+    - Incorrect conditional rendering
+  </Accordion>
+</AccordionGroup>
+
+## Browser DevTools
+
+### Console Logging
+
+Use `console.log()` strategically to inspect values:
+
+```jsx
+function App() {
+  const [userInput, setUserInput] = useState({
+    initialInvestment: 10000,
+    annualInvestment: 1200,
+    expectedReturn: 6,
+    duration: 10,
+  });
+
+  function handleChange(inputIdentifier, newValue) {
+    console.log('Input changed:', inputIdentifier, newValue); // Debug log
+    
+    setUserInput((prevUserInput) => {
+      const updated = {
+        ...prevUserInput,
+        [inputIdentifier]: +newValue,
+      };
+      console.log('Updated state:', updated); // Debug log
+      return updated;
+    });
+  }
+
+  console.log('App rendering with:', userInput); // Track re-renders
+
+  return (
+    <>
+      <Header />
+      <UserInput userInput={userInput} onChange={handleChange} />
+      <Results input={userInput} />
+    </>
+  );
+}
+```
+
+<Tip>
+Add descriptive labels to your console.logs to easily identify them:
+
+```javascript
+console.log('🔍 Current state:', state);
+console.log('✅ Function called with:', args);
+```
+</Tip>
+
+### Breakpoints
+
+Set breakpoints in browser DevTools to pause execution:
+
+<Steps>
+  <Step title="Open DevTools">
+    Press F12 or right-click and select "Inspect"
+  </Step>
+  
+  <Step title="Navigate to Sources tab">
+    Find your source files in the file tree
+  </Step>
+  
+  <Step title="Click line number">
+    Set a breakpoint by clicking the line number where you want to pause
+  </Step>
+  
+  <Step title="Inspect variables">
+    When execution pauses, hover over variables or check the Scope panel
+  </Step>
+</Steps>
+
+### Network Tab
+
+Inspect API calls and responses:
+
+- Check request/response status
+- Verify request headers and payloads
+- Examine response data
+- Identify slow requests
+
+## React DevTools
+
+<Card title="Install React DevTools" icon="download" href="https://react.dev/learn/react-developer-tools">
+  Browser extension for Chrome, Firefox, and Edge
+</Card>
+
+### Components Tab
+
+Inspect component hierarchy and props:
+
+<Steps>
+  <Step title="Select a component">
+    Click on any component in the tree
+  </Step>
+  
+  <Step title="Inspect props and state">
+    View current values in the right panel
+  </Step>
+  
+  <Step title="Edit values">
+    Double-click values to test different scenarios
+  </Step>
+  
+  <Step title="Trace updates">
+    Enable "Highlight updates" to see which components re-render
+  </Step>
+</Steps>
+
+### Profiler Tab
+
+Identify performance issues:
+
+- Record rendering performance
+- Find components that render too often
+- Identify slow renders
+- Analyze component render times
+
+## Common Debugging Scenarios
+
+### State Not Updating
+
+<Warning>
+Problem: Component doesn't re-render after state change
+
+```jsx
+// Wrong - mutating state directly
+const newData = data;
+newData.push(item);
+setData(newData);
+```
+
+Solution: Create a new reference
+
+```jsx
+// Right - creating new array
+setData([...data, item]);
+```
+</Warning>
+
+### Infinite Render Loop
+
+<Warning>
+Problem: Component keeps re-rendering infinitely
+
+```jsx
+// Wrong - calling setter during render
+function App() {
+  const [count, setCount] = useState(0);
+  setCount(count + 1); // Infinite loop!
+  return <div>{count}</div>;
+}
+```
+
+Solution: Use effects or event handlers
+
+```jsx
+// Right - update in event handler
+function App() {
+  const [count, setCount] = useState(0);
+  
+  return (
+    <div>
+      <p>{count}</p>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </div>
+  );
+}
+```
+</Warning>
+
+### Props Not Passing Correctly
+
+<Tabs>
+  <Tab title="Problem">
+    ```jsx
+    // Wrong - typo in prop name
+    <UserInput userInpt={userInput} onChange={handleChange} />
+    
+    // Component expecting 'userInput'
+    function UserInput({ userInput, onChange }) {
+      console.log(userInput); // undefined!
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Debug">
+    ```jsx
+    function UserInput(props) {
+      console.log('Received props:', props);
+      // Check what props were actually received
+      
+      const { userInput, onChange } = props;
+      // Destructure to catch missing props
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Solution">
+    ```jsx
+    // Fix typo
+    <UserInput userInput={userInput} onChange={handleChange} />
+    ```
+  </Tab>
+</Tabs>
+
+### Invalid Calculations
+
+```jsx Results.jsx
+export default function Results({ input }) {
+  // Debug: Check if input is valid
+  console.log('Results received input:', input);
+  
+  // Validate before calculations
+  const inputIsValid = input.duration >= 1;
+  
+  if (!inputIsValid) {
+    return <p className="center">Please enter a duration greater than zero.</p>;
+  }
+  
+  const resultsData = calculateInvestmentResults(input);
+  console.log('Calculated results:', resultsData);
+  
+  return (
+    <table id="result">
+      {/* Render results */}
+    </table>
+  );
+}
+```
+
+## Debugging Strategies
+
+<CardGroup cols={2}>
+  <Card title="Divide and Conquer" icon="scissors">
+    Comment out sections of code to isolate the problem
+  </Card>
+  
+  <Card title="Rubber Duck Debugging" icon="comment">
+    Explain your code line-by-line to find logical errors
+  </Card>
+  
+  <Card title="Check the Basics" icon="check">
+    Verify imports, prop names, and function calls first
+  </Card>
+  
+  <Card title="Read Error Messages" icon="book">
+    Error messages often point directly to the problem
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+### Add Helpful Error Messages
+
+```jsx
+function Results({ input }) {
+  if (!input) {
+    return <p className="error">No input data provided to Results component</p>;
+  }
+  
+  if (input.duration < 1) {
+    return <p className="error">Duration must be at least 1 year</p>;
+  }
+  
+  // Rest of component
+}
+```
+
+### Use Strict Mode
+
+```jsx index.jsx
+import { StrictMode } from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+```
+
+<Note>
+Strict Mode helps identify potential problems by:
+- Detecting unexpected side effects
+- Warning about deprecated APIs
+- Double-invoking functions to catch bugs
+</Note>
+
+### Validate Props
+
+```jsx
+function UserInput({ userInput, onChange }) {
+  // Add runtime validation
+  if (!userInput || !onChange) {
+    console.error('UserInput requires userInput and onChange props');
+    return null;
+  }
+  
+  return (
+    <section id="user-input">
+      {/* Component content */}
+    </section>
+  );
+}
+```
+
+## Debugging Tools Checklist
+
+<Steps>
+  <Step title="Browser Console">
+    Check for error messages and warnings
+  </Step>
+  
+  <Step title="React DevTools">
+    Inspect component props and state
+  </Step>
+  
+  <Step title="Network Tab">
+    Verify API calls and responses
+  </Step>
+  
+  <Step title="Breakpoints">
+    Pause execution to inspect variables
+  </Step>
+  
+  <Step title="Console Logs">
+    Add strategic logs to trace execution flow
+  </Step>
+</Steps>
+
+## Quick Debugging Tips
+
+<Tip>
+1. **Check your imports** - Missing imports cause common errors
+2. **Verify prop names** - Typos in prop names are easy to miss
+3. **Log component renders** - Add console.log at the top to track re-renders
+4. **Use React DevTools** - Visualize the component tree and state
+5. **Read the error stack trace** - The line number is usually accurate
+6. **Check for missing keys** - Lists need unique key props
+7. **Validate input types** - Type coercion can cause unexpected behavior
+8. **Test in isolation** - Simplify code to find the minimal failing case
+</Tip>
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="React DevTools" icon="react" href="https://react.dev/learn/react-developer-tools">
+    Official browser extension for debugging React apps
+  </Card>
+  
+  <Card title="Error Boundaries" icon="shield" href="https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary">
+    Catch and handle errors in component trees
+  </Card>
+</CardGroup>

@@ -1,0 +1,545 @@
+---
+title: How React Works Behind the Scenes
+description: Understanding React's virtual DOM, reconciliation, component re-rendering, and performance optimization
+---
+
+## Overview
+
+Understand how React works internally to build better, more performant applications. Learn about the virtual DOM, reconciliation algorithm, when components re-render, and how to optimize performance.
+
+<CardGroup cols={2}>
+  <Card title="Virtual DOM" icon="sitemap">
+    React's in-memory representation of UI
+  </Card>
+  <Card title="Reconciliation" icon="code-compare">
+    How React updates the DOM efficiently
+  </Card>
+  <Card title="Component Re-rendering" icon="rotate">
+    When and why components update
+  </Card>
+  <Card title="Performance" icon="gauge-high">
+    Optimization techniques and tools
+  </Card>
+</CardGroup>
+
+---
+
+## How React Updates the DOM
+
+<Steps>
+  <Step title="Component Renders">
+    Component function executes, returning JSX
+  </Step>
+  <Step title="Virtual DOM Created">
+    React creates virtual DOM representation from JSX
+  </Step>
+  <Step title="Reconciliation">
+    React compares new virtual DOM with previous version
+  </Step>
+  <Step title="DOM Updates">
+    Only changed elements are updated in real DOM
+  </Step>
+</Steps>
+
+<Info>
+  **Why Virtual DOM?**
+  
+  Direct DOM manipulation is slow. React's virtual DOM:
+  - Batches multiple updates together
+  - Calculates minimum changes needed
+  - Updates real DOM only once
+  - Results in better performance
+</Info>
+
+---
+
+## When Components Re-render
+
+A component re-renders when:
+
+<CardGroup cols={2}>
+  <Card title="State Changes" icon="database">
+    `useState` or `useReducer` state updates
+  </Card>
+  <Card title="Props Change" icon="arrow-right">
+    Parent passes different props
+  </Card>
+  <Card title="Context Changes" icon="share-nodes">
+    Context value updates
+  </Card>
+  <Card title="Parent Re-renders" icon="diagram-project">
+    Parent component re-renders by default
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Default Behavior:**
+  
+  When a parent component re-renders, **all child components re-render by default**, even if their props haven't changed. This can impact performance in large component trees.
+</Warning>
+
+---
+
+## Preventing Unnecessary Re-renders with memo
+
+Use `React.memo()` to prevent component re-renders when props haven't changed.
+
+<Tabs>
+  <Tab title="Without memo">
+    ```jsx CounterOutput.jsx
+    export default function CounterOutput({ value }) {
+      // Re-renders every time parent renders
+      const cssClass = value >= 0 ? 'counter-output' : 'counter-output negative';
+      return <span className={cssClass}>{value}</span>;
+    }
+    ```
+    
+    This component re-renders even if `value` is the same.
+  </Tab>
+  
+  <Tab title="With memo">
+    ```jsx CounterOutput.jsx
+    import { memo } from 'react';
+    
+    const CounterOutput = memo(function CounterOutput({ value }) {
+      // Only re-renders when value changes
+      const cssClass = value >= 0 ? 'counter-output' : 'counter-output negative';
+      return <span className={cssClass}>{value}</span>;
+    });
+    
+    export default CounterOutput;
+    ```
+    
+    Now it only re-renders when `value` prop actually changes.
+  </Tab>
+</Tabs>
+
+### Complete Example
+
+```jsx Counter.jsx
+import { useState, memo } from 'react';
+import CounterOutput from './CounterOutput.jsx';
+
+function isPrime(number) {
+  if (number <= 1) return false;
+  
+  const limit = Math.sqrt(number);
+  for (let i = 2; i <= limit; i++) {
+    if (number % i === 0) return false;
+  }
+  return true;
+}
+
+const Counter = memo(function Counter({ initialCount }) {
+  const initialCountIsPrime = isPrime(initialCount);
+  const [counter, setCounter] = useState(initialCount);
+
+  function handleDecrement() {
+    setCounter((prevCounter) => prevCounter - 1);
+  }
+
+  function handleIncrement() {
+    setCounter((prevCounter) => prevCounter + 1);
+  }
+
+  return (
+    <section className="counter">
+      <p className="counter-info">
+        The initial counter value was <strong>{initialCount}</strong>. It{' '}
+        <strong>is {initialCountIsPrime ? 'a' : 'not a'}</strong> prime number.
+      </p>
+      <p>
+        <button onClick={handleDecrement}>Decrement</button>
+        <CounterOutput value={counter} />
+        <button onClick={handleIncrement}>Increment</button>
+      </p>
+    </section>
+  );
+});
+
+export default Counter;
+```
+
+<AccordionGroup>
+  <Accordion title="How memo Works">
+    `memo` performs a shallow comparison of props:
+    - If props are the same, skip re-render
+    - If props changed, re-render component
+    - Compares using `Object.is()` by default
+  </Accordion>
+  
+  <Accordion title="When to Use memo">
+    Use `memo` when:
+    - Component renders often with same props
+    - Component is expensive to render
+    - Component is pure (same props = same output)
+    
+    Don't overuse - `memo` itself has cost.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## The useMemo Hook
+
+Memoize expensive calculations so they only re-run when dependencies change.
+
+<CodeGroup>
+```jsx Without useMemo
+const Counter = memo(function Counter({ initialCount }) {
+  // isPrime runs on EVERY render
+  const initialCountIsPrime = isPrime(initialCount);
+  const [counter, setCounter] = useState(initialCount);
+  
+  // Each time counter changes, isPrime recalculates
+  // even though initialCount hasn't changed!
+  
+  return (/* ... */);
+});
+```
+
+```jsx With useMemo
+import { useState, memo, useMemo } from 'react';
+
+const Counter = memo(function Counter({ initialCount }) {
+  // isPrime only runs when initialCount changes
+  const initialCountIsPrime = useMemo(
+    () => isPrime(initialCount),
+    [initialCount]
+  );
+  
+  const [counter, setCounter] = useState(initialCount);
+  
+  return (/* ... */);
+});
+```
+</CodeGroup>
+
+### useMemo Syntax
+
+```jsx
+const memoizedValue = useMemo(
+  () => {
+    // Expensive calculation
+    return computeExpensiveValue(a, b);
+  },
+  [a, b] // Dependencies
+);
+```
+
+<Info>
+  **When to Use useMemo:**
+  - Expensive calculations (complex algorithms)
+  - Creating objects/arrays passed as props to memoized children
+  - Referential equality matters for child components
+  
+  **When NOT to Use:**
+  - Simple calculations (overhead not worth it)
+  - Values that change frequently anyway
+  - As premature optimization
+</Info>
+
+---
+
+## The useCallback Hook
+
+Memoize function references to prevent child re-renders.
+
+```jsx Counter.jsx
+import { useState, memo, useCallback, useMemo } from 'react';
+
+const Counter = memo(function Counter({ initialCount }) {
+  const initialCountIsPrime = useMemo(
+    () => isPrime(initialCount),
+    [initialCount]
+  );
+
+  const [counter, setCounter] = useState(initialCount);
+
+  // Functions are memoized - same reference unless deps change
+  const handleDecrement = useCallback(function handleDecrement() {
+    setCounter((prevCounter) => prevCounter - 1);
+  }, []);
+
+  const handleIncrement = useCallback(function handleIncrement() {
+    setCounter((prevCounter) => prevCounter + 1);
+  }, []);
+
+  return (
+    <section className="counter">
+      <p className="counter-info">
+        The initial counter value was <strong>{initialCount}</strong>. It{' '}
+        <strong>is {initialCountIsPrime ? 'a' : 'not a'}</strong> prime number.
+      </p>
+      <p>
+        <IconButton icon={MinusIcon} onClick={handleDecrement}>
+          Decrement
+        </IconButton>
+        <CounterOutput value={counter} />
+        <IconButton icon={PlusIcon} onClick={handleIncrement}>
+          Increment
+        </IconButton>
+      </p>
+    </section>
+  );
+});
+```
+
+<Tabs>
+  <Tab title="useMemo vs useCallback">
+    ```jsx
+    // useMemo - memoizes the RESULT
+    const value = useMemo(() => computeValue(a, b), [a, b]);
+    
+    // useCallback - memoizes the FUNCTION
+    const callback = useCallback(() => doSomething(a, b), [a, b]);
+    
+    // These are equivalent:
+    const callback = useCallback(fn, deps);
+    const callback = useMemo(() => fn, deps);
+    ```
+  </Tab>
+  
+  <Tab title="Why Functions Need Memoization">
+    ```jsx
+    // Without useCallback
+    function Parent() {
+      // New function created every render
+      const handleClick = () => console.log('clicked');
+      
+      // Child re-renders even with memo
+      return <Child onClick={handleClick} />;
+    }
+    
+    // With useCallback
+    function Parent() {
+      // Same function reference preserved
+      const handleClick = useCallback(
+        () => console.log('clicked'),
+        []
+      );
+      
+      // Child doesn't re-render unnecessarily
+      return <Child onClick={handleClick} />;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Keys and Component Identity
+
+React uses keys to identify which elements changed, were added, or removed.
+
+<AccordionGroup>
+  <Accordion title="Keys in Lists">
+    ```jsx
+    {items.map((item) => (
+      <ListItem key={item.id} data={item} />
+    ))}
+    ```
+    
+    Keys help React:
+    - Identify which items changed
+    - Preserve component state
+    - Optimize re-renders
+  </Accordion>
+  
+  <Accordion title="Keys for Component Reset">
+    Changing a component's key forces React to unmount and remount it:
+    
+    ```jsx
+    <Counter key={chosenCount} initialCount={chosenCount} />
+    ```
+    
+    When `chosenCount` changes, React:
+    1. Unmounts old Counter
+    2. Mounts new Counter with fresh state
+    3. Useful for resetting component state
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  **Key Anti-patterns:**
+  
+  ```jsx
+  // ❌ Don't use array index as key
+  {items.map((item, index) => <Item key={index} />)}
+  
+  // ❌ Don't use random values
+  {items.map((item) => <Item key={Math.random()} />)}
+  
+  // ✅ Use stable unique identifiers
+  {items.map((item) => <Item key={item.id} />)}
+  ```
+</Warning>
+
+---
+
+## React's Rendering Process
+
+<Steps>
+  <Step title="Trigger">
+    State update, prop change, or context change triggers render
+  </Step>
+  <Step title="Render Phase">
+    React calls component functions to get new virtual DOM
+  </Step>
+  <Step title="Reconciliation">
+    React compares new virtual DOM with previous snapshot
+  </Step>
+  <Step title="Commit Phase">
+    React updates actual DOM with minimum changes needed
+  </Step>
+  <Step title="Browser Paint">
+    Browser paints updated DOM to screen
+  </Step>
+</Steps>
+
+<Info>
+  **Important Distinction:**
+  - **Rendering** = Calling component function
+  - **Committing** = Updating the DOM
+  
+  A component can render without DOM changes if output is identical.
+</Info>
+
+---
+
+## Performance Optimization Checklist
+
+<CardGroup cols={2}>
+  <Card title="Use memo" icon="memory">
+    Prevent re-renders when props unchanged
+  </Card>
+  <Card title="Use useMemo" icon="calculator">
+    Memoize expensive calculations
+  </Card>
+  <Card title="Use useCallback" icon="function">
+    Memoize function references
+  </Card>
+  <Card title="Proper Keys" icon="key">
+    Use stable unique keys in lists
+  </Card>
+  <Card title="Code Splitting" icon="scissors">
+    Lazy load components not immediately needed
+  </Card>
+  <Card title="Virtualization" icon="list">
+    Render only visible list items
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Optimization Philosophy:**
+  
+  1. **Profile first** - Don't optimize prematurely
+  2. **Measure impact** - Use React DevTools Profiler
+  3. **Focus on bottlenecks** - Optimize what matters
+  4. **Keep it simple** - Readable code > clever optimizations
+</Tip>
+
+---
+
+## Million.js Integration
+
+The course also covers Million.js, a compiler that optimizes React applications:
+
+```jsx
+import { block } from 'million/react';
+
+// Wrap components for automatic optimization
+const Counter = block(function Counter({ initialCount }) {
+  // Component code
+});
+```
+
+<Info>
+  Million.js analyzes your components and applies optimizations automatically, potentially improving performance without manual memoization.
+</Info>
+
+---
+
+## Common Performance Pitfalls
+
+<AccordionGroup>
+  <Accordion title="Creating Objects in Render">
+    ```jsx
+    // ❌ New object every render
+    <Child style={{ color: 'red' }} />
+    
+    // ✅ Stable reference
+    const style = useMemo(() => ({ color: 'red' }), []);
+    <Child style={style} />
+    ```
+  </Accordion>
+  
+  <Accordion title="Inline Function Props">
+    ```jsx
+    // ❌ New function every render
+    <Child onClick={() => doSomething()} />
+    
+    // ✅ Memoized function
+    const handleClick = useCallback(() => doSomething(), []);
+    <Child onClick={handleClick} />
+    ```
+  </Accordion>
+  
+  <Accordion title="Heavy Computations in Render">
+    ```jsx
+    // ❌ Runs every render
+    const expensiveResult = computeExpensiveValue(data);
+    
+    // ✅ Memoized
+    const expensiveResult = useMemo(
+      () => computeExpensiveValue(data),
+      [data]
+    );
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Profiling and Debugging
+
+<Tabs>
+  <Tab title="React DevTools">
+    Use React DevTools Profiler to:
+    - Record component render times
+    - Identify unnecessary re-renders
+    - Find performance bottlenecks
+    - Visualize component updates
+  </Tab>
+  
+  <Tab title="Why Did You Render">
+    Install `@welldone-software/why-did-you-render` to:
+    - Get notifications about avoidable re-renders
+    - See which props changed
+    - Debug performance issues
+  </Tab>
+  
+  <Tab title="Console Logging">
+    ```jsx
+    function MyComponent(props) {
+      console.log('MyComponent rendered', props);
+      // Component code
+    }
+    ```
+    
+    Simple but effective for understanding render behavior.
+  </Tab>
+</Tabs>
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="React DevTools" icon="wrench" href="https://react.dev/learn/react-developer-tools">
+    Profile and debug React applications
+  </Card>
+  <Card title="React Reconciliation" icon="book" href="https://react.dev/learn/preserving-and-resetting-state">
+    Deep dive into React's reconciliation
+  </Card>
+</CardGroup>

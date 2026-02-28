@@ -1,0 +1,778 @@
+---
+title: "React Animations"
+description: "Master animations in React using CSS transitions, keyframes, and Framer Motion for smooth, performant UI interactions"
+icon: "sparkles"
+---
+
+## Overview
+
+Animations bring your React applications to life, providing visual feedback and improving user experience. This section covers both CSS-based animations and the popular Framer Motion library.
+
+<CardGroup cols={2}>
+  <Card title="CSS Animations" icon="css3">
+    Built-in browser animations with transitions and keyframes
+  </Card>
+  <Card title="Framer Motion" icon="wand-magic-sparkles">
+    Powerful animation library for React with declarative API
+  </Card>
+  <Card title="Exit Animations" icon="door-open">
+    Animate components when they're removed from the DOM
+  </Card>
+  <Card title="Layout Animations" icon="grid">
+    Smooth layout changes and element repositioning
+  </Card>
+</CardGroup>
+
+## CSS Transitions
+
+CSS transitions are the simplest way to add animations to your React components.
+
+### Basic Transition
+
+<CodeGroup>
+```css Icon Rotation
+.challenge-item-details-icon {
+  display: inline-block;
+  font-size: 0.85rem;
+  margin-left: 0.25rem;
+  transition: transform 0.3s ease-out;
+}
+
+.challenge-item-details.expanded .challenge-item-details-icon {
+  transform: rotate(180deg);
+}
+```
+
+```jsx Component Usage
+export default function ChallengeItem({ isExpanded }) {
+  return (
+    <div className={`challenge-item-details ${isExpanded ? 'expanded' : ''}`}>
+      <button>
+        View Details{' '}
+        <span className="challenge-item-details-icon">
+          &#9650;
+        </span>
+      </button>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+<Info>
+The `transition` property defines which CSS properties should animate, the duration, and the timing function (ease-out, ease-in, linear, etc.).
+</Info>
+
+## CSS Keyframe Animations
+
+For more complex animations, use CSS `@keyframes`.
+
+<CodeGroup>
+```css Modal Slide-In Animation
+.modal {
+  top: 10%;
+  border-radius: 6px;
+  padding: 1.5rem;
+  width: 30rem;
+  max-width: 90%;
+  z-index: 10;
+  animation: slide-up-fade-in 0.3s ease-out forwards;
+}
+
+@keyframes slide-up-fade-in {
+  0% {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+```
+
+```jsx Modal Component
+import { createPortal } from 'react-dom';
+
+export default function Modal({ title, children, onClose }) {
+  return createPortal(
+    <>
+      <div className="backdrop" onClick={onClose} />
+      <dialog open className="modal">
+        <h2>{title}</h2>
+        {children}
+      </dialog>
+    </>,
+    document.getElementById('modal')
+  );
+}
+```
+</CodeGroup>
+
+<Tip>
+Use `forwards` in the animation property to maintain the final state after the animation completes.
+</Tip>
+
+### Common Keyframe Patterns
+
+<Tabs>
+  <Tab title="Fade In">
+    ```css
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    .element {
+      animation: fade-in 0.3s ease-in;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Slide In">
+    ```css
+    @keyframes slide-in-left {
+      from {
+        transform: translateX(-100%);
+      }
+      to {
+        transform: translateX(0);
+      }
+    }
+    
+    .element {
+      animation: slide-in-left 0.4s ease-out;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Scale & Fade">
+    ```css
+    @keyframes scale-fade-in {
+      0% {
+        transform: scale(0.8);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    .element {
+      animation: scale-fade-in 0.3s ease-out;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Bounce">
+    ```css
+    @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+    
+    .element {
+      animation: bounce 0.6s ease-in-out infinite;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Framer Motion
+
+Framer Motion is a production-ready animation library for React with a simple, declarative API.
+
+### Installation
+
+```bash
+npm install framer-motion
+```
+
+### Basic Animation
+
+<CodeGroup>
+```jsx Modal with Framer Motion
+import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
+
+export default function Modal({ title, children, onClose }) {
+  return createPortal(
+    <>
+      <div className="backdrop" onClick={onClose} />
+      <motion.dialog
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 30 }}
+        open
+        className="modal"
+      >
+        <h2>{title}</h2>
+        {children}
+      </motion.dialog>
+    </>,
+    document.getElementById('modal')
+  );
+}
+```
+</CodeGroup>
+
+<Note>
+Framer Motion uses `motion` components (like `motion.div`, `motion.dialog`) which are enhanced versions of HTML elements with animation capabilities.
+</Note>
+
+### Animation Props
+
+<AccordionGroup>
+  <Accordion title="initial">
+    The starting state of the animation.
+    
+    ```jsx
+    <motion.div initial={{ opacity: 0, scale: 0.5 }}>
+    ```
+  </Accordion>
+  
+  <Accordion title="animate">
+    The target state to animate to.
+    
+    ```jsx
+    <motion.div animate={{ opacity: 1, scale: 1 }}>
+    ```
+  </Accordion>
+  
+  <Accordion title="exit">
+    The state to animate to when the component is removed.
+    
+    ```jsx
+    <motion.div exit={{ opacity: 0, scale: 0.5 }}>
+    ```
+  </Accordion>
+  
+  <Accordion title="transition">
+    Configure animation timing and easing.
+    
+    ```jsx
+    <motion.div 
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Dynamic Animations
+
+<CodeGroup>
+```jsx Rotating Icon
+import { motion } from 'framer-motion';
+
+export default function ChallengeItem({ isExpanded, onViewDetails }) {
+  return (
+    <div className="challenge-item-details">
+      <button onClick={onViewDetails}>
+        View Details{' '}
+        <motion.span
+          animate={{ rotate: isExpanded ? 180 : 0 }}
+          className="challenge-item-details-icon"
+        >
+          &#9650;
+        </motion.span>
+      </button>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+<Tip>
+Framer Motion automatically handles animations when prop values change. No need to manually trigger transitions!
+</Tip>
+
+## Exit Animations
+
+Animating component removal requires special handling since React removes elements immediately.
+
+### Using AnimatePresence
+
+<CodeGroup>
+```jsx NewChallenge.jsx
+import { AnimatePresence } from 'framer-motion';
+import Modal from './Modal';
+
+export default function NewChallenge() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setIsModalOpen(true)}>
+        New Challenge
+      </button>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <Modal
+            title="New Challenge"
+            onClose={() => setIsModalOpen(false)}
+          >
+            <form>...</form>
+          </Modal>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+```
+</CodeGroup>
+
+<Warning>
+`AnimatePresence` must be a direct parent of the conditionally rendered component. Each child must have a unique `key` prop if you're rendering multiple animating components.
+</Warning>
+
+### AnimatePresence with Lists
+
+<CodeGroup>
+```jsx Challenges.jsx
+import { AnimatePresence, motion } from 'framer-motion';
+
+export default function Challenges({ challenges }) {
+  return (
+    <ul className="challenge-items">
+      <AnimatePresence>
+        {challenges.map((challenge) => (
+          <motion.li
+            key={challenge.id}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+          >
+            <ChallengeItem challenge={challenge} />
+          </motion.li>
+        ))}
+      </AnimatePresence>
+    </ul>
+  );
+}
+```
+</CodeGroup>
+
+## Animation Variants
+
+Variants let you define reusable animation configurations.
+
+<CodeGroup>
+```jsx Using Variants
+import { motion } from 'framer-motion';
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.3 }
+  },
+  exit: { 
+    opacity: 0, 
+    y: -20,
+    transition: { duration: 0.2 }
+  }
+};
+
+export default function ChallengeItem({ challenge }) {
+  return (
+    <motion.article
+      variants={itemVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="challenge-item"
+    >
+      <h2>{challenge.title}</h2>
+      <p>{challenge.description}</p>
+    </motion.article>
+  );
+}
+```
+</CodeGroup>
+
+<Info>
+Variants make your animations more maintainable and enable powerful features like animation orchestration and propagation to children.
+</Info>
+
+## Staggered Animations
+
+Create cascading animations where child elements animate in sequence.
+
+<CodeGroup>
+```jsx Staggered List
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0 }
+};
+
+export default function ChallengeList({ challenges }) {
+  return (
+    <motion.ul
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="challenge-items"
+    >
+      {challenges.map((challenge) => (
+        <motion.li key={challenge.id} variants={itemVariants}>
+          <ChallengeItem challenge={challenge} />
+        </motion.li>
+      ))}
+    </motion.ul>
+  );
+}
+```
+</CodeGroup>
+
+<Tip>
+The `staggerChildren` property automatically delays each child's animation, creating a smooth cascade effect without manual timing calculations.
+</Tip>
+
+## Layout Animations
+
+Framer Motion can automatically animate layout changes.
+
+<CodeGroup>
+```jsx Layout Animation
+import { motion } from 'framer-motion';
+
+export default function ExpandablePanel({ isExpanded }) {
+  return (
+    <motion.div 
+      layout
+      className="panel"
+    >
+      <h3>Panel Title</h3>
+      {isExpanded && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <p>Panel content goes here...</p>
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+```
+</CodeGroup>
+
+<Note>
+The `layout` prop tells Framer Motion to animate any layout changes (position, size) automatically using the FLIP technique for optimal performance.
+</Note>
+
+## Imperative Animations
+
+Use the `useAnimation` hook for programmatic control.
+
+<CodeGroup>
+```jsx Imperative Control
+import { motion, useAnimation } from 'framer-motion';
+import { useEffect } from 'react';
+
+export default function Notification({ message, type }) {
+  const controls = useAnimation();
+
+  useEffect(() => {
+    controls.start({
+      opacity: [0, 1, 1, 0],
+      y: [20, 0, 0, -20],
+      transition: {
+        duration: 3,
+        times: [0, 0.1, 0.9, 1]
+      }
+    });
+  }, [message, controls]);
+
+  return (
+    <motion.div
+      animate={controls}
+      className={`notification ${type}`}
+    >
+      {message}
+    </motion.div>
+  );
+}
+```
+</CodeGroup>
+
+## Gesture Animations
+
+Framer Motion includes built-in gesture recognition.
+
+<CodeGroup>
+```jsx Hover & Tap
+import { motion } from 'framer-motion';
+
+export default function Button({ children, onClick }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="button"
+    >
+      {children}
+    </motion.button>
+  );
+}
+```
+
+```jsx Drag
+import { motion } from 'framer-motion';
+
+export default function DraggableCard() {
+  return (
+    <motion.div
+      drag
+      dragConstraints={{ left: 0, right: 300, top: 0, bottom: 300 }}
+      dragElastic={0.2}
+      className="card"
+    >
+      Drag me!
+    </motion.div>
+  );
+}
+```
+</CodeGroup>
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="Animate transform and opacity">
+    These properties can be animated on the GPU for smooth 60fps animations.
+    
+    ```jsx
+    // Good - GPU accelerated
+    <motion.div animate={{ x: 100, opacity: 0.5 }} />
+    
+    // Avoid if possible - triggers layout recalculation
+    <motion.div animate={{ width: "100%", marginLeft: 20 }} />
+    ```
+  </Accordion>
+  
+  <Accordion title="Use will-change sparingly">
+    The `will-change` CSS property can improve performance but use it carefully.
+    
+    ```css
+    .animated-element {
+      will-change: transform, opacity;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Reduce motion for accessibility">
+    Respect user preferences for reduced motion.
+    
+    ```jsx
+    import { useReducedMotion } from 'framer-motion';
+    
+    function Component() {
+      const shouldReduceMotion = useReducedMotion();
+      
+      return (
+        <motion.div
+          animate={{ x: shouldReduceMotion ? 0 : 100 }}
+          transition={{ duration: shouldReduceMotion ? 0 : 0.3 }}
+        />
+      );
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common Animation Patterns
+
+<Tabs>
+  <Tab title="Modal Entry/Exit">
+    ```jsx
+    import { AnimatePresence, motion } from 'framer-motion';
+    
+    const modalVariants = {
+      hidden: { opacity: 0, scale: 0.8 },
+      visible: { 
+        opacity: 1, 
+        scale: 1,
+        transition: { type: "spring", damping: 25 }
+      },
+      exit: { 
+        opacity: 0, 
+        scale: 0.8,
+        transition: { duration: 0.2 }
+      }
+    };
+    
+    function App() {
+      const [showModal, setShowModal] = useState(false);
+      
+      return (
+        <AnimatePresence>
+          {showModal && (
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              Modal content
+            </motion.div>
+          )}
+        </AnimatePresence>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Page Transitions">
+    ```jsx
+    import { AnimatePresence, motion } from 'framer-motion';
+    
+    const pageVariants = {
+      initial: { opacity: 0, x: -20 },
+      animate: { opacity: 1, x: 0 },
+      exit: { opacity: 0, x: 20 }
+    };
+    
+    function PageTransition({ children }) {
+      return (
+        <motion.div
+          variants={pageVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.3 }}
+        >
+          {children}
+        </motion.div>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Loading Spinner">
+    ```jsx
+    import { motion } from 'framer-motion';
+    
+    export default function Spinner() {
+      return (
+        <motion.div
+          className="spinner"
+          animate={{ rotate: 360 }}
+          transition={{ 
+            duration: 1, 
+            repeat: Infinity, 
+            ease: "linear" 
+          }}
+        />
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Notification Toast">
+    ```jsx
+    import { AnimatePresence, motion } from 'framer-motion';
+    
+    export default function Toast({ message, isVisible }) {
+      return (
+        <AnimatePresence>
+          {isVisible && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.3 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.2 } }}
+              className="toast"
+            >
+              {message}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep animations subtle" icon="eye">
+    Animations should enhance UX, not distract. Use durations between 200-400ms for most UI transitions.
+  </Card>
+  
+  <Card title="Be consistent" icon="check">
+    Use similar timing and easing throughout your app for a cohesive feel.
+  </Card>
+  
+  <Card title="Consider performance" icon="gauge">
+    Stick to animating `transform` and `opacity` when possible for smooth 60fps animations.
+  </Card>
+  
+  <Card title="Respect accessibility" icon="universal-access">
+    Always honor the `prefers-reduced-motion` media query for users with motion sensitivities.
+  </Card>
+</CardGroup>
+
+## Choosing an Animation Approach
+
+<Steps>
+  <Step title="CSS Transitions">
+    **Best for:** Simple hover effects, state changes
+    
+    **Pros:** Performant, no JavaScript overhead, browser-optimized
+    
+    **Cons:** Limited control, no exit animations
+  </Step>
+  
+  <Step title="CSS Keyframes">
+    **Best for:** Complex multi-step animations, loading indicators
+    
+    **Pros:** Full animation control, performant, works without JavaScript
+    
+    **Cons:** Can't easily respond to React state changes
+  </Step>
+  
+  <Step title="Framer Motion">
+    **Best for:** Dynamic animations, gesture-based interactions, layout animations
+    
+    **Pros:** Declarative API, powerful features, great DX
+    
+    **Cons:** Adds bundle size, requires JavaScript
+  </Step>
+</Steps>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Styling" icon="palette" href="/ui/styling">
+    Learn about styling approaches for your animated components
+  </Card>
+  <Card title="Refs & Portals" icon="diagram-project" href="/ui/refs-portals">
+    Combine animations with portals for modals and overlays
+  </Card>
+</CardGroup>

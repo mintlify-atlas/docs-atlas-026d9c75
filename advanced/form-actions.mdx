@@ -1,0 +1,364 @@
+---
+title: 'Form Actions'
+description: 'Modern form handling with React 19+ form actions and useActionState'
+icon: 'bolt'
+---
+
+## Modern Form Actions
+
+React 19+ introduces a more declarative approach to form handling with form actions and the `useActionState` hook.
+
+<Note>
+Form actions work seamlessly with React Server Components and provide built-in handling for async operations.
+</Note>
+
+## Basic Form Action
+
+Instead of using `onSubmit`, you can pass an action function directly to the form:
+
+```jsx
+function Signup() {
+  function signupAction(formData) {
+    const email = formData.get('email');
+    const password = formData.get('password');
+    
+    console.log({ email, password });
+  }
+
+  return (
+    <form action={signupAction}>
+      <div className="control">
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" name="email" />
+      </div>
+
+      <div className="control">
+        <label htmlFor="password">Password</label>
+        <input id="password" type="password" name="password" />
+      </div>
+
+      <button>Sign up</button>
+    </form>
+  );
+}
+```
+
+<Tip>
+Form actions automatically prevent the default form submission behavior - no need for `event.preventDefault()`.
+</Tip>
+
+## Using useActionState
+
+The `useActionState` hook manages form state and provides feedback to users:
+
+```jsx
+import { useActionState } from 'react';
+import {
+  isEmail,
+  isNotEmpty,
+  isEqualToOtherValue,
+  hasMinLength,
+} from '../util/validation';
+
+export default function Signup() {
+  function signupAction(prevFormState, formData) {
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirm-password');
+    const firstName = formData.get('first-name');
+    const lastName = formData.get('last-name');
+    const role = formData.get('role');
+    const terms = formData.get('terms');
+    const acquisitionChannel = formData.getAll('acquisition');
+
+    let errors = [];
+
+    if (!isEmail(email)) {
+      errors.push('Invalid email address.');
+    }
+
+    if (!isNotEmpty(password) || !hasMinLength(password, 6)) {
+      errors.push('You must provide a password with at least six characters.');
+    }
+
+    if (!isEqualToOtherValue(password, confirmPassword)) {
+      errors.push('Passwords do not match.');
+    }
+
+    if (!isNotEmpty(firstName) || !isNotEmpty(lastName)) {
+      errors.push('Please provide both your first and last name.');
+    }
+
+    if (!isNotEmpty(role)) {
+      errors.push('Please select a role.');
+    }
+
+    if (!terms) {
+      errors.push('You must agree to the terms and conditions.');
+    }
+
+    if (acquisitionChannel.length === 0) {
+      errors.push('Please select at least one acquisition channel.');
+    }
+
+    if (errors.length > 0) {
+      return { errors };
+    }
+
+    return { errors: null };
+  }
+
+  const [formState, formAction] = useActionState(signupAction, {
+    errors: null,
+  });
+
+  return (
+    <form action={formAction}>
+      <h2>Welcome on board!</h2>
+      <p>We just need a little bit of data from you to get you started</p>
+
+      <div className="control">
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" name="email" />
+      </div>
+
+      <div className="control-row">
+        <div className="control">
+          <label htmlFor="password">Password</label>
+          <input id="password" type="password" name="password" />
+        </div>
+
+        <div className="control">
+          <label htmlFor="confirm-password">Confirm Password</label>
+          <input
+            id="confirm-password"
+            type="password"
+            name="confirm-password"
+          />
+        </div>
+      </div>
+
+      <hr />
+
+      <div className="control-row">
+        <div className="control">
+          <label htmlFor="first-name">First Name</label>
+          <input type="text" id="first-name" name="first-name" />
+        </div>
+
+        <div className="control">
+          <label htmlFor="last-name">Last Name</label>
+          <input type="text" id="last-name" name="last-name" />
+        </div>
+      </div>
+
+      <div className="control">
+        <label htmlFor="phone">What best describes your role?</label>
+        <select id="role" name="role">
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+          <option value="employee">Employee</option>
+          <option value="founder">Founder</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <fieldset>
+        <legend>How did you find us?</legend>
+        <div className="control">
+          <input
+            type="checkbox"
+            id="google"
+            name="acquisition"
+            value="google"
+          />
+          <label htmlFor="google">Google</label>
+        </div>
+
+        <div className="control">
+          <input
+            type="checkbox"
+            id="friend"
+            name="acquisition"
+            value="friend"
+          />
+          <label htmlFor="friend">Referred by friend</label>
+        </div>
+
+        <div className="control">
+          <input type="checkbox" id="other" name="acquisition" value="other" />
+          <label htmlFor="other">Other</label>
+        </div>
+      </fieldset>
+
+      <div className="control">
+        <label htmlFor="terms-and-conditions">
+          <input type="checkbox" id="terms-and-conditions" name="terms" />I
+          agree to the terms and conditions
+        </label>
+      </div>
+
+      {formState.errors && (
+        <ul className="error">
+          {formState.errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      )}
+
+      <p className="form-actions">
+        <button type="reset" className="button button-flat">
+          Reset
+        </button>
+        <button className="button">Sign up</button>
+      </p>
+    </form>
+  );
+}
+```
+
+## How useActionState Works
+
+<Steps>
+  <Step title="Initialize the hook">
+    Call `useActionState` with your action function and initial state:
+    ```jsx
+    const [formState, formAction] = useActionState(signupAction, { errors: null });
+    ```
+  </Step>
+  
+  <Step title="Connect to the form">
+    Pass `formAction` to your form's `action` prop:
+    ```jsx
+    <form action={formAction}>
+    ```
+  </Step>
+  
+  <Step title="Access previous state">
+    Your action receives the previous state as the first parameter:
+    ```jsx
+    function signupAction(prevFormState, formData) {
+      // prevFormState contains the previous return value
+    }
+    ```
+  </Step>
+  
+  <Step title="Return new state">
+    Return the new state from your action:
+    ```jsx
+    if (errors.length > 0) {
+      return { errors };
+    }
+    return { errors: null };
+    ```
+  </Step>
+  
+  <Step title="Use the state">
+    Access the current state in your component:
+    ```jsx
+    {formState.errors && (
+      <ul className="error">
+        {formState.errors.map((error) => (
+          <li key={error}>{error}</li>
+        ))}
+      </ul>
+    )}
+    ```
+  </Step>
+</Steps>
+
+## Extracting Form Data
+
+The FormData API provides convenient methods for extracting values:
+
+<CodeGroup>
+```javascript Single Values
+const email = formData.get('email');
+const password = formData.get('password');
+```
+
+```javascript Multiple Values
+// For checkboxes or multi-select
+const acquisitionChannels = formData.getAll('acquisition');
+// Returns: ['google', 'friend']
+```
+
+```javascript All Data
+const data = Object.fromEntries(formData.entries());
+// Returns: { email: '...', password: '...', ... }
+```
+</CodeGroup>
+
+## Validation Patterns
+
+### Collecting Validation Errors
+
+```javascript
+function validateForm(formData) {
+  const errors = [];
+  
+  const email = formData.get('email');
+  if (!isEmail(email)) {
+    errors.push('Invalid email address.');
+  }
+  
+  const password = formData.get('password');
+  if (!hasMinLength(password, 6)) {
+    errors.push('Password must be at least 6 characters.');
+  }
+  
+  return errors;
+}
+```
+
+### Field-Specific Errors
+
+```javascript
+function signupAction(prevFormState, formData) {
+  const fieldErrors = {};
+  
+  const email = formData.get('email');
+  if (!isEmail(email)) {
+    fieldErrors.email = 'Invalid email address.';
+  }
+  
+  const password = formData.get('password');
+  if (!hasMinLength(password, 6)) {
+    fieldErrors.password = 'Password too short.';
+  }
+  
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
+  }
+  
+  return { fieldErrors: null };
+}
+```
+
+## Advantages of Form Actions
+
+<CardGroup cols={2}>
+  <Card title="Declarative" icon="code">
+    Pass functions directly to forms without managing event handlers manually
+  </Card>
+  
+  <Card title="Built-in State" icon="layer-group">
+    useActionState manages form state and previous values automatically
+  </Card>
+  
+  <Card title="Server Integration" icon="server">
+    Works seamlessly with React Server Components and Server Actions
+  </Card>
+  
+  <Card title="Progressive Enhancement" icon="arrows-up-to-line">
+    Forms can work without JavaScript when using Server Actions
+  </Card>
+</CardGroup>
+
+<Warning>
+Form actions and `useActionState` require React 19 or later. For older versions, use traditional `onSubmit` handlers.
+</Warning>
+
+<Info>
+**Source Code**: Section 17b - Form Actions
+</Info>

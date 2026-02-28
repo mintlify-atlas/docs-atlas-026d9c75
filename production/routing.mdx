@@ -1,0 +1,362 @@
+---
+title: 'React Router and Navigation'
+description: 'Master routing in React applications with React Router v6, including setup, navigation, data loading, and form handling'
+icon: 'route'
+---
+
+## Overview
+
+React Router enables client-side routing in React applications, allowing you to build single-page applications with multiple views and seamless navigation without full page reloads.
+
+<Info>
+This section covers React Router v6 features including nested routes, loaders, actions, and programmatic navigation.
+</Info>
+
+## Basic Router Setup
+
+Set up React Router using `createBrowserRouter` and `RouterProvider`:
+
+```javascript
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import HomePage from './pages/Home';
+
+const router = createBrowserRouter([
+  { path: '/', element: <HomePage /> },
+]);
+
+function App() {
+  return <RouterProvider router={router} />;
+}
+
+export default App;
+```
+
+<Note>
+The `createBrowserRouter` API is the recommended approach for React Router v6.4+ as it enables data loading and server-side rendering capabilities.
+</Note>
+
+## Nested Routes and Layouts
+
+Create hierarchical route structures with shared layouts:
+
+```javascript
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      { index: true, element: <HomePage /> },
+      {
+        path: 'events',
+        element: <EventsRootLayout />,
+        children: [
+          { index: true, element: <EventsPage /> },
+          { path: ':eventId', element: <EventDetailPage /> },
+          { path: 'new', element: <NewEventPage /> },
+          { path: ':eventId/edit', element: <EditEventPage /> },
+        ],
+      },
+    ],
+  },
+]);
+```
+
+<Card title="Key Concepts" icon="lightbulb">
+- **Index routes** - Default child route rendered at parent path
+- **Dynamic segments** - Use `:parameter` syntax for dynamic values
+- **Nested layouts** - Share UI elements across multiple routes
+</Card>
+
+## Navigation with NavLink
+
+Use `NavLink` for navigation with active state styling:
+
+```javascript
+import { NavLink } from 'react-router-dom';
+
+function MainNavigation() {
+  return (
+    <nav>
+      <ul>
+        <li>
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              isActive ? 'active' : undefined
+            }
+            end
+          >
+            Home
+          </NavLink>
+        </li>
+        <li>
+          <NavLink
+            to="/products"
+            className={({ isActive }) =>
+              isActive ? 'active' : undefined
+            }
+          >
+            Products
+          </NavLink>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+```
+
+<Tip>
+The `end` prop ensures the NavLink is only active when the path matches exactly, useful for the home route.
+</Tip>
+
+## Data Loading with Loaders
+
+Load data before rendering route components:
+
+<CodeGroup>
+```javascript Route Configuration
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    children: [
+      {
+        path: 'events',
+        element: <EventsPage />,
+        loader: async () => {
+          const response = await fetch('http://localhost:8080/events');
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch events');
+          }
+          
+          const resData = await response.json();
+          return resData.events;
+        },
+      },
+    ],
+  },
+]);
+```
+
+```javascript Component Usage
+import { useLoaderData } from 'react-router-dom';
+
+function EventsPage() {
+  const events = useLoaderData();
+  
+  return <EventsList events={events} />;
+}
+```
+</CodeGroup>
+
+<Warning>
+Loaders execute before the route component renders, blocking navigation until data is fetched. Use defer for non-blocking data loading.
+</Warning>
+
+## Form Submission with Actions
+
+Handle form submissions using route actions:
+
+<CodeGroup>
+```javascript Action Implementation
+import { redirect } from 'react-router-dom';
+
+export async function action({ request, params }) {
+  const data = await request.formData();
+  
+  const eventData = {
+    title: data.get('title'),
+    image: data.get('image'),
+    date: data.get('date'),
+    description: data.get('description'),
+  };
+  
+  const response = await fetch('http://localhost:8080/events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(eventData),
+  });
+  
+  if (!response.ok) {
+    throw new Response(JSON.stringify({ message: 'Could not save event.' }), {
+      status: 500,
+    });
+  }
+  
+  return redirect('/events');
+}
+```
+
+```javascript Route Configuration
+const router = createBrowserRouter([
+  {
+    path: 'events/new',
+    element: <NewEventPage />,
+    action: action,
+  },
+]);
+```
+</CodeGroup>
+
+## Handling Loading States
+
+Provide user feedback during navigation:
+
+```javascript
+import { useNavigation } from 'react-router-dom';
+
+function AuthForm() {
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === 'submitting';
+  
+  return (
+    <form method="post">
+      {/* form fields */}
+      <button disabled={isSubmitting}>
+        {isSubmitting ? 'Submitting...' : 'Save'}
+      </button>
+    </form>
+  );
+}
+```
+
+<Info>
+`useNavigation` provides the current navigation state: `idle`, `loading`, or `submitting`.
+</Info>
+
+## Dynamic Routes and Parameters
+
+Access URL parameters in your components:
+
+```javascript
+import { useParams } from 'react-router-dom';
+
+function EventDetailPage() {
+  const params = useParams();
+  const eventId = params.eventId;
+  
+  // Fetch and display event details
+  return <div>Event ID: {eventId}</div>;
+}
+```
+
+## Query Parameters
+
+Work with URL query parameters:
+
+```javascript
+import { useSearchParams } from 'react-router-dom';
+
+function AuthForm() {
+  const [searchParams] = useSearchParams();
+  const isLogin = searchParams.get('mode') === 'login';
+  
+  return (
+    <form>
+      <h1>{isLogin ? 'Log in' : 'Create a new user'}</h1>
+      {/* form fields */}
+    </form>
+  );
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+<Accordion title="Separate loader functions" icon="code">
+Extract loader functions to separate files for better organization and reusability:
+
+```javascript
+// loaders/events.js
+export async function eventsLoader() {
+  const response = await fetch('http://localhost:8080/events');
+  
+  if (!response.ok) {
+    throw json({ message: 'Failed to fetch events' }, { status: 500 });
+  }
+  
+  return response;
+}
+```
+</Accordion>
+
+<Accordion title="Error handling" icon="triangle-exclamation">
+Use error boundaries and throw responses for proper error handling:
+
+```javascript
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <RootLayout />,
+    errorElement: <ErrorPage />,
+    children: [/* routes */],
+  },
+]);
+```
+</Accordion>
+
+<Accordion title="Programmatic navigation" icon="arrow-right">
+Use `useNavigate` for navigation in response to user actions:
+
+```javascript
+import { useNavigate } from 'react-router-dom';
+
+function MyComponent() {
+  const navigate = useNavigate();
+  
+  function handleSubmit() {
+    // Process data
+    navigate('/success');
+  }
+  
+  return <button onClick={handleSubmit}>Submit</button>;
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Common Patterns
+
+<CardGroup cols={2}>
+<Card title="Protected Routes" icon="lock">
+Implement route protection with loaders:
+```javascript
+export function checkAuthLoader() {
+  const token = getAuthToken();
+  if (!token) {
+    return redirect('/auth');
+  }
+  return null;
+}
+```
+</Card>
+
+<Card title="Layout Wrappers" icon="layer-group">
+Create reusable layout components:
+```javascript
+function RootLayout() {
+  return (
+    <>
+      <MainNavigation />
+      <Outlet />
+    </>
+  );
+}
+```
+</Card>
+</CardGroup>
+
+## Related Topics
+
+<CardGroup cols={2}>
+<Card title="Authentication" icon="shield" href="/production/authentication">
+Learn how to implement authentication with React Router
+</Card>
+
+<Card title="React Query" icon="database" href="/production/react-query">
+Alternative data fetching approach with caching
+</Card>
+</CardGroup>

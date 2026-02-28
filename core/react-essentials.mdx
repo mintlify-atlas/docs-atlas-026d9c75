@@ -1,0 +1,454 @@
+---
+title: React Essentials
+description: Components, props, state, and events - the fundamental building blocks
+icon: react
+---
+
+<Info>
+This section covers the essential React concepts you'll use in almost every app you build.
+</Info>
+
+## Components
+
+Components are the building blocks of React applications. They are reusable, self-contained pieces of UI.
+
+### Creating Your First Component
+
+```jsx Header.jsx
+function Header() {
+  const description = 'Fundamental';
+
+  return (
+    <header>
+      <img src={reactImg} alt="Stylized atom" />
+      <h1>React Essentials</h1>
+      <p>
+        {description} React concepts you will need for almost any app you are
+        going to build!
+      </p>
+    </header>
+  );
+}
+```
+
+<Tip>
+Component names must start with a capital letter to distinguish them from HTML elements.
+</Tip>
+
+### Dynamic Values in JSX
+
+Use curly braces `{}` to output dynamic values:
+
+```jsx
+const reactDescriptions = ['Fundamental', 'Crucial', 'Core'];
+
+function genRandomInt(max) {
+  return Math.floor(Math.random() * (max + 1));
+}
+
+function Header() {
+  const description = reactDescriptions[genRandomInt(2)];
+
+  return (
+    <header>
+      <h1>React Essentials</h1>
+      <p>
+        {description} React concepts you will need for almost any app!
+      </p>
+    </header>
+  );
+}
+```
+
+### Storing Components in Files
+
+<Steps>
+  <Step title="Create a component file">
+    ```jsx components/CoreConcept.jsx
+    export default function CoreConcept({ image, title, description }) {
+      return (
+        <li>
+          <img src={image} alt={title} />
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </li>
+      );
+    }
+    ```
+  </Step>
+  
+  <Step title="Import and use it">
+    ```jsx App.jsx
+    import CoreConcept from './components/CoreConcept.jsx';
+    
+    function App() {
+      return (
+        <ul>
+          <CoreConcept
+            title="Components"
+            description="The core UI building block."
+            image={componentsImg}
+          />
+        </ul>
+      );
+    }
+    ```
+  </Step>
+</Steps>
+
+## Props
+
+Props (properties) allow you to pass data from parent to child components.
+
+### Passing Props
+
+```jsx App.jsx
+import componentsImg from './assets/components.png';
+
+function CoreConcept(props) {
+  return (
+    <li>
+      <img src={props.image} alt={props.title} />
+      <h3>{props.title}</h3>
+      <p>{props.description}</p>
+    </li>
+  );
+}
+
+function App() {
+  return (
+    <div>
+      <main>
+        <section id="core-concepts">
+          <h2>Core Concepts</h2>
+          <ul>
+            <CoreConcept
+              title="Components"
+              description="The core UI building block."
+              image={componentsImg}
+            />
+          </ul>
+        </section>
+      </main>
+    </div>
+  );
+}
+```
+
+### Alternative Props Syntax
+
+<Tabs>
+  <Tab title="Object Destructuring">
+    ```jsx
+    function CoreConcept({ image, title, description }) {
+      return (
+        <li>
+          <img src={image} alt={title} />
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </li>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Spread Operator">
+    ```jsx
+    const CORE_CONCEPTS = [
+      {
+        title: 'Components',
+        description: 'The core UI building block.',
+        image: componentsImg
+      }
+    ];
+    
+    <CoreConcept {...CORE_CONCEPTS[0]} />
+    ```
+  </Tab>
+  
+  <Tab title="Props Object">
+    ```jsx
+    function CoreConcept(props) {
+      return (
+        <li>
+          <img src={props.image} alt={props.title} />
+          <h3>{props.title}</h3>
+          <p>{props.description}</p>
+        </li>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Children Prop
+
+The special `children` prop contains content between component tags:
+
+```jsx TabButton.jsx
+export default function TabButton({ children }) {
+  return (
+    <li>
+      <button>{children}</button>
+    </li>
+  );
+}
+```
+
+```jsx App.jsx
+<TabButton>Components</TabButton>
+<TabButton>JSX</TabButton>
+<TabButton>Props</TabButton>
+```
+
+<Note>
+The `children` prop is a special prop that React provides automatically.
+</Note>
+
+## Events
+
+### Reacting to Events
+
+Handle user interactions with event props:
+
+```jsx TabButton.jsx
+export default function TabButton({ children }) {
+  function handleClick() {
+    console.log('Hello World!');
+  }
+
+  return (
+    <li>
+      <button onClick={handleClick}>{children}</button>
+    </li>
+  );
+}
+```
+
+<Warning>
+Pass the function reference, not the result: `onClick={handleClick}` not `onClick={handleClick()}`
+</Warning>
+
+### Passing Functions as Props
+
+```jsx TabButton.jsx
+export default function TabButton({ children, onSelect }) {
+  return (
+    <li>
+      <button onClick={onSelect}>{children}</button>
+    </li>
+  );
+}
+```
+
+```jsx App.jsx
+function App() {
+  function handleSelect(selectedButton) {
+    console.log(selectedButton);
+  }
+
+  return (
+    <menu>
+      <TabButton onSelect={() => handleSelect('components')}>
+        Components
+      </TabButton>
+      <TabButton onSelect={() => handleSelect('jsx')}>JSX</TabButton>
+    </menu>
+  );
+}
+```
+
+## State
+
+State allows components to create and manage their own data that can change over time.
+
+### Managing State with useState
+
+```jsx App.jsx
+import { useState } from 'react';
+
+function App() {
+  const [selectedTopic, setSelectedTopic] = useState('Please click a button');
+  
+  function handleSelect(selectedButton) {
+    setSelectedTopic(selectedButton);
+  }
+
+  console.log('APP COMPONENT EXECUTING');
+
+  return (
+    <div>
+      <section id="examples">
+        <h2>Examples</h2>
+        <menu>
+          <TabButton onSelect={() => handleSelect('components')}>
+            Components
+          </TabButton>
+          <TabButton onSelect={() => handleSelect('jsx')}>JSX</TabButton>
+          <TabButton onSelect={() => handleSelect('props')}>Props</TabButton>
+          <TabButton onSelect={() => handleSelect('state')}>State</TabButton>
+        </menu>
+        {selectedTopic}
+      </section>
+    </div>
+  );
+}
+```
+
+<Steps>
+  <Step title="Import useState">
+    ```javascript
+    import { useState } from 'react';
+    ```
+  </Step>
+  
+  <Step title="Call useState with initial value">
+    ```javascript
+    const [selectedTopic, setSelectedTopic] = useState('Please click a button');
+    ```
+    
+    Returns an array with:
+    - Current state value
+    - Function to update it
+  </Step>
+  
+  <Step title="Update state">
+    ```javascript
+    setSelectedTopic('components');
+    ```
+    
+    Calling the setter triggers a component re-render.
+  </Step>
+</Steps>
+
+### How NOT to Update the UI
+
+<Warning>
+This won't work - React doesn't track regular variables:
+
+```jsx
+function App() {
+  let selectedTopic = 'Please click a button';
+  
+  function handleSelect(selectedButton) {
+    selectedTopic = selectedButton; // Won't trigger re-render!
+  }
+  
+  return <div>{selectedTopic}</div>;
+}
+```
+
+You must use state for reactive values.
+</Warning>
+
+## Rendering Content Conditionally
+
+### Conditional Rendering Patterns
+
+<Tabs>
+  <Tab title="Ternary Operator">
+    ```jsx
+    {selectedTopic ? (
+      <div>
+        <h3>{EXAMPLES[selectedTopic].title}</h3>
+        <p>{EXAMPLES[selectedTopic].description}</p>
+      </div>
+    ) : (
+      <p>Please select a topic.</p>
+    )}
+    ```
+  </Tab>
+  
+  <Tab title="Logical AND">
+    ```jsx
+    {!selectedTopic && <p>Please select a topic.</p>}
+    {selectedTopic && (
+      <div>
+        <h3>{EXAMPLES[selectedTopic].title}</h3>
+      </div>
+    )}
+    ```
+  </Tab>
+  
+  <Tab title="Variable">
+    ```jsx
+    let tabContent = <p>Please select a topic.</p>;
+    
+    if (selectedTopic) {
+      tabContent = (
+        <div>
+          <h3>{EXAMPLES[selectedTopic].title}</h3>
+        </div>
+      );
+    }
+    
+    return <div>{tabContent}</div>;
+    ```
+  </Tab>
+</Tabs>
+
+## Outputting List Data
+
+Use the `map()` method to transform arrays into lists of components:
+
+```jsx
+const CORE_CONCEPTS = [
+  { title: 'Components', description: 'The core UI building block.', image: componentsImg },
+  { title: 'JSX', description: 'Return HTML from JavaScript.', image: jsxImg },
+  { title: 'Props', description: 'Pass data to components.', image: propsImg },
+  { title: 'State', description: 'Manage component data.', image: stateImg },
+];
+
+function App() {
+  return (
+    <ul>
+      {CORE_CONCEPTS.map((concept) => (
+        <CoreConcept key={concept.title} {...concept} />
+      ))}
+    </ul>
+  );
+}
+```
+
+<Warning>
+Always provide a `key` prop when rendering lists. Keys help React identify which items have changed.
+</Warning>
+
+## Dynamic Styles
+
+Apply styles conditionally:
+
+```jsx
+<button
+  className={activeContentIndex === 0 ? "active" : ""}
+  onClick={() => setActiveContentIndex(0)}
+>
+  Why React?
+</button>
+```
+
+## Key Takeaways
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="cube">
+    Reusable building blocks that return JSX
+  </Card>
+  
+  <Card title="Props" icon="arrow-right">
+    Pass data from parent to child components
+  </Card>
+  
+  <Card title="State" icon="database">
+    Manage component data that changes over time
+  </Card>
+  
+  <Card title="Events" icon="bolt">
+    Handle user interactions with event handlers
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Card title="Essentials Deep Dive" icon="magnifying-glass" href="/core/essentials-deep-dive">
+  Explore advanced React essentials topics and patterns
+</Card>

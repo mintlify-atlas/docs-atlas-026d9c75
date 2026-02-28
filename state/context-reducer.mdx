@@ -1,0 +1,401 @@
+---
+title: Context API and useReducer
+description: Advanced state management with React Context and useReducer hook for complex state logic
+---
+
+## Overview
+
+Learn how to manage complex state across your application using React's Context API combined with the `useReducer` hook. This section covers solutions to prop drilling and scalable state management patterns.
+
+<CardGroup cols={2}>
+  <Card title="Context API" icon="layer-group">
+    Share state across component tree without prop drilling
+  </Card>
+  <Card title="useReducer Hook" icon="rotate">
+    Manage complex state logic with actions and reducers
+  </Card>
+  <Card title="Context Provider" icon="share-nodes">
+    Centralize state management logic
+  </Card>
+  <Card title="Custom Hooks" icon="code">
+    Create reusable context consumers
+  </Card>
+</CardGroup>
+
+---
+
+## The Problem: Prop Drilling
+
+When state needs to be shared across multiple nested components, passing props through intermediate components becomes cumbersome.
+
+<Warning>
+  **Prop Drilling Issues:**
+  - Intermediate components receive props they don't use
+  - Changes require updating multiple component signatures
+  - Code becomes harder to maintain and refactor
+</Warning>
+
+---
+
+## Creating Context
+
+Context provides a way to pass data through the component tree without manually passing props at every level.
+
+<Steps>
+  <Step title="Create Context">
+    Define the context shape and default values
+    
+    ```jsx
+    import { createContext } from 'react';
+    
+    export const CartContext = createContext({
+      items: [],
+      addItemToCart: () => {},
+      updateItemQuantity: () => {},
+    });
+    ```
+  </Step>
+  
+  <Step title="Provide Context">
+    Wrap components that need access to the context
+    
+    ```jsx
+    <CartContext.Provider value={ctxValue}>
+      {children}
+    </CartContext.Provider>
+    ```
+  </Step>
+  
+  <Step title="Consume Context">
+    Access context values in child components
+    
+    ```jsx
+    import { useContext } from 'react';
+    import { CartContext } from '../store/shopping-cart-context';
+    
+    const { items, updateItemQuantity } = useContext(CartContext);
+    ```
+  </Step>
+</Steps>
+
+---
+
+## useReducer Hook
+
+For complex state logic, `useReducer` offers a more predictable alternative to `useState`.
+
+<AccordionGroup>
+  <Accordion title="When to Use useReducer">
+    - Multiple state values that change together
+    - Complex state updates based on previous state
+    - State transitions that follow specific rules
+    - When you want to separate state logic from component logic
+  </Accordion>
+  
+  <Accordion title="Reducer Function Pattern">
+    A reducer takes the current state and an action, returning the new state:
+    
+    ```jsx
+    function reducer(state, action) {
+      // Return new state based on action
+      return newState;
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Basic Syntax
+
+```jsx
+const [state, dispatch] = useReducer(reducerFunction, initialState);
+```
+
+---
+
+## Complete Example: Shopping Cart
+
+Here's a real implementation from the course combining Context API with `useReducer`:
+
+<CodeGroup>
+```jsx shopping-cart-context.jsx
+import { createContext, useReducer } from 'react';
+import { DUMMY_PRODUCTS } from '../dummy-products.js';
+
+export const CartContext = createContext({
+  items: [],
+  addItemToCart: () => {},
+  updateItemQuantity: () => {},
+});
+
+function shoppingCartReducer(state, action) {
+  if (action.type === 'ADD_ITEM') {
+    const updatedItems = [...state.items];
+
+    const existingCartItemIndex = updatedItems.findIndex(
+      (cartItem) => cartItem.id === action.payload
+    );
+    const existingCartItem = updatedItems[existingCartItemIndex];
+
+    if (existingCartItem) {
+      const updatedItem = {
+        ...existingCartItem,
+        quantity: existingCartItem.quantity + 1,
+      };
+      updatedItems[existingCartItemIndex] = updatedItem;
+    } else {
+      const product = DUMMY_PRODUCTS.find(
+        (product) => product.id === action.payload
+      );
+      updatedItems.push({
+        id: action.payload,
+        name: product.title,
+        price: product.price,
+        quantity: 1,
+      });
+    }
+
+    return {
+      ...state,
+      items: updatedItems,
+    };
+  }
+
+  if (action.type === 'UPDATE_ITEM') {
+    const updatedItems = [...state.items];
+    const updatedItemIndex = updatedItems.findIndex(
+      (item) => item.id === action.payload.productId
+    );
+
+    const updatedItem = {
+      ...updatedItems[updatedItemIndex],
+    };
+
+    updatedItem.quantity += action.payload.amount;
+
+    if (updatedItem.quantity <= 0) {
+      updatedItems.splice(updatedItemIndex, 1);
+    } else {
+      updatedItems[updatedItemIndex] = updatedItem;
+    }
+
+    return {
+      ...state,
+      items: updatedItems,
+    };
+  }
+  return state;
+}
+
+export default function CartContextProvider({ children }) {
+  const [shoppingCartState, shoppingCartDispatch] = useReducer(
+    shoppingCartReducer,
+    {
+      items: [],
+    }
+  );
+
+  function handleAddItemToCart(id) {
+    shoppingCartDispatch({
+      type: 'ADD_ITEM',
+      payload: id,
+    });
+  }
+
+  function handleUpdateCartItemQuantity(productId, amount) {
+    shoppingCartDispatch({
+      type: 'UPDATE_ITEM',
+      payload: {
+        productId,
+        amount
+      }
+    });
+  }
+
+  const ctxValue = {
+    items: shoppingCartState.items,
+    addItemToCart: handleAddItemToCart,
+    updateItemQuantity: handleUpdateCartItemQuantity,
+  };
+
+  return (
+    <CartContext.Provider value={ctxValue}>{children}</CartContext.Provider>
+  );
+}
+```
+
+```jsx Cart.jsx
+import { useContext } from 'react';
+import { CartContext } from '../store/shopping-cart-context.jsx';
+
+export default function Cart() {
+  const { items, updateItemQuantity } = useContext(CartContext);
+
+  const totalPrice = items.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
+  const formattedTotalPrice = `$${totalPrice.toFixed(2)}`;
+
+  return (
+    <div id="cart">
+      {items.length === 0 && <p>No items in cart!</p>}
+      {items.length > 0 && (
+        <ul id="cart-items">
+          {items.map((item) => {
+            const formattedPrice = `$${item.price.toFixed(2)}`;
+
+            return (
+              <li key={item.id}>
+                <div>
+                  <span>{item.name}</span>
+                  <span> ({formattedPrice})</span>
+                </div>
+                <div className="cart-item-actions">
+                  <button onClick={() => updateItemQuantity(item.id, -1)}>
+                    -
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button onClick={() => updateItemQuantity(item.id, 1)}>
+                    +
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p id="cart-total-price">
+        Cart Total: <strong>{formattedTotalPrice}</strong>
+      </p>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+---
+
+## Key Concepts
+
+<Tabs>
+  <Tab title="Dispatching Actions">
+    Actions are objects that describe what happened:
+    
+    ```jsx
+    dispatch({
+      type: 'ADD_ITEM',
+      payload: itemId
+    });
+    
+    dispatch({
+      type: 'UPDATE_ITEM',
+      payload: { productId, amount }
+    });
+    ```
+    
+    <Info>
+      **Action Structure:**
+      - `type`: String identifier for the action
+      - `payload`: Data needed to perform the action
+    </Info>
+  </Tab>
+  
+  <Tab title="Immutable Updates">
+    Always return new state objects, never mutate:
+    
+    ```jsx
+    // ✅ Correct - creates new array
+    const updatedItems = [...state.items];
+    
+    // ❌ Wrong - mutates state
+    state.items.push(newItem);
+    ```
+  </Tab>
+  
+  <Tab title="Provider Pattern">
+    Wrap components that need access to context:
+    
+    ```jsx
+    <CartContextProvider>
+      <App />
+    </CartContextProvider>
+    ```
+    
+    Only descendants of the Provider can access the context.
+  </Tab>
+</Tabs>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Outsource Context Logic" icon="file-code">
+    Create separate context provider components to keep logic organized
+  </Card>
+  <Card title="Type-Safe Actions" icon="shield-check">
+    Use constants for action types to prevent typos
+  </Card>
+  <Card title="Granular Contexts" icon="puzzle-piece">
+    Split unrelated state into separate contexts
+  </Card>
+  <Card title="Performance" icon="gauge-high">
+    Use multiple contexts to prevent unnecessary re-renders
+  </Card>
+</CardGroup>
+
+<Tip>
+  **When to Use Context + useReducer vs Redux:**
+  
+  Use Context + useReducer for:
+  - App-specific state management
+  - Simpler applications
+  - When you don't need middleware
+  
+  Consider Redux for:
+  - Very large applications
+  - Complex async logic
+  - Time-travel debugging needs
+</Tip>
+
+---
+
+## Common Patterns
+
+### Action Creators
+
+Wrap dispatch calls in functions for cleaner component code:
+
+```jsx
+function handleAddItemToCart(id) {
+  shoppingCartDispatch({
+    type: 'ADD_ITEM',
+    payload: id,
+  });
+}
+```
+
+### Context Value Object
+
+Combine state and functions into a single context value:
+
+```jsx
+const ctxValue = {
+  items: shoppingCartState.items,
+  addItemToCart: handleAddItemToCart,
+  updateItemQuantity: handleUpdateCartItemQuantity,
+};
+```
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="React Docs: useReducer" icon="book" href="https://react.dev/reference/react/useReducer">
+    Official documentation for the useReducer hook
+  </Card>
+  <Card title="React Docs: Context" icon="book" href="https://react.dev/learn/passing-data-deeply-with-context">
+    Learn about React Context in depth
+  </Card>
+</CardGroup>

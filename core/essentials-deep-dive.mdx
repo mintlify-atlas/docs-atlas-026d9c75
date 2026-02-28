@@ -1,0 +1,561 @@
+---
+title: Essentials Deep Dive
+description: Advanced React essentials - fragments, component composition, state updates, and patterns
+icon: magnifying-glass
+---
+
+<Info>
+This section explores advanced patterns and techniques for the React essentials you've already learned.
+</Info>
+
+## JSX Fragments
+
+Components can only return one root element. Fragments let you group elements without adding extra DOM nodes.
+
+### The Problem
+
+<Warning>
+This won't work:
+
+```jsx
+function App() {
+  return (
+    <header>...</header>
+    <main>...</main>  // Error: Adjacent JSX elements must be wrapped
+  );
+}
+```
+</Warning>
+
+### The Solutions
+
+<Tabs>
+  <Tab title="Fragment Syntax">
+    ```jsx
+    function App() {
+      return (
+        <>
+          <header>...</header>
+          <main>...</main>
+        </>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="React.Fragment">
+    ```jsx
+    import { Fragment } from 'react';
+    
+    function App() {
+      return (
+        <Fragment>
+          <header>...</header>
+          <main>...</main>
+        </Fragment>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+Use the short syntax `<>...</>` unless you need to pass a `key` prop to the fragment.
+</Note>
+
+## Splitting Components
+
+As your app grows, split large components into smaller, focused ones.
+
+### Before: Monolithic Component
+
+```jsx App.jsx
+function App() {
+  return (
+    <>
+      <Header />
+      <main>
+        <section id="core-concepts">
+          <h2>Core Concepts</h2>
+          <ul>
+            {CORE_CONCEPTS.map((concept) => (
+              <CoreConcept key={concept.title} {...concept} />
+            ))}
+          </ul>
+        </section>
+        
+        <section id="examples">
+          <h2>Examples</h2>
+          <menu>
+            <TabButton onSelect={() => handleSelect('components')}>
+              Components
+            </TabButton>
+          </menu>
+          <div>{/* Example content */}</div>
+        </section>
+      </main>
+    </>
+  );
+}
+```
+
+### After: Split Components
+
+<CodeGroup>
+
+```jsx CoreConcepts.jsx
+import CoreConcept from './CoreConcept';
+import { CORE_CONCEPTS } from '../data';
+
+export default function CoreConcepts() {
+  return (
+    <section id="core-concepts">
+      <h2>Core Concepts</h2>
+      <ul>
+        {CORE_CONCEPTS.map((concept) => (
+          <CoreConcept key={concept.title} {...concept} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+```
+
+```jsx Examples.jsx
+import { useState } from 'react';
+import TabButton from './TabButton';
+import { EXAMPLES } from '../data';
+
+export default function Examples() {
+  const [selectedTopic, setSelectedTopic] = useState();
+  
+  function handleSelect(selectedButton) {
+    setSelectedTopic(selectedButton);
+  }
+  
+  return (
+    <section id="examples">
+      <h2>Examples</h2>
+      <menu>
+        <TabButton onSelect={() => handleSelect('components')}>
+          Components
+        </TabButton>
+      </menu>
+      {/* Example content */}
+    </section>
+  );
+}
+```
+
+```jsx App.jsx
+import Header from './components/Header/Header';
+import CoreConcepts from './components/CoreConcepts';
+import Examples from './components/Examples';
+
+export default function App() {
+  return (
+    <>
+      <Header />
+      <main>
+        <CoreConcepts />
+        <Examples />
+      </main>
+    </>
+  );
+}
+```
+
+</CodeGroup>
+
+<Tip>
+Split components when they become too large or handle multiple responsibilities.
+</Tip>
+
+## Forwarding Props
+
+Forward all props to a component without listing them individually.
+
+### Using the Rest Operator
+
+```jsx Section.jsx
+export default function Section({ title, children, ...props }) {
+  return (
+    <section {...props}>
+      <h2>{title}</h2>
+      {children}
+    </section>
+  );
+}
+```
+
+```jsx Usage
+<Section title="Core Concepts" id="core-concepts" className="highlight">
+  <p>Content here</p>
+</Section>
+
+// Renders as:
+// <section id="core-concepts" className="highlight">
+//   <h2>Core Concepts</h2>
+//   <p>Content here</p>
+// </section>
+```
+
+<Note>
+This pattern is useful for wrapper components that need to forward HTML attributes to underlying elements.
+</Note>
+
+## Multiple JSX Slots
+
+Pass multiple pieces of JSX to a component using named props.
+
+### The Tabs Pattern
+
+```jsx Tabs.jsx
+export default function Tabs({ children, buttons }) {
+  return (
+    <>
+      <menu>{buttons}</menu>
+      {children}
+    </>>
+  );
+}
+```
+
+```jsx Usage
+<Tabs
+  buttons={
+    <>
+      <TabButton onSelect={() => handleSelect('components')}>
+        Components
+      </TabButton>
+      <TabButton onSelect={() => handleSelect('jsx')}>JSX</TabButton>
+    </>
+  }
+>
+  <div>{/* Tab content */}</div>
+</Tabs>
+```
+
+<Tip>
+This pattern gives you more control over component structure than using only `children`.
+</Tip>
+
+## Dynamic Component Types
+
+Render different components based on props or state.
+
+### Component Type as Prop
+
+```jsx Tabs.jsx
+export default function Tabs({ children, buttons, ButtonsContainer = 'menu' }) {
+  return (
+    <>
+      <ButtonsContainer>{buttons}</ButtonsContainer>
+      {children}
+    </>
+  );
+}
+```
+
+```jsx Usage
+// Renders <menu>
+<Tabs buttons={...}>...</Tabs>
+
+// Renders <div>
+<Tabs buttons={...} ButtonsContainer="div">...</Tabs>
+
+// Renders custom component
+<Tabs buttons={...} ButtonsContainer={CustomMenu}>...</Tabs>
+```
+
+<Warning>
+Component identifier props must start with an uppercase letter: `ButtonsContainer`, not `buttonsContainer`.
+</Warning>
+
+## State Management Patterns
+
+### Updating State Based on Old State
+
+When new state depends on previous state, use the function form:
+
+```jsx
+function App() {
+  const [userInput, setUserInput] = useState({
+    initialInvestment: 10000,
+    annualInvestment: 1200,
+    expectedReturn: 6,
+    duration: 10,
+  });
+
+  function handleChange(inputIdentifier, newValue) {
+    setUserInput((prevUserInput) => {
+      return {
+        ...prevUserInput,
+        [inputIdentifier]: +newValue,
+      };
+    });
+  }
+}
+```
+
+<Warning>
+Always use the function form when new state depends on old state:
+
+```jsx
+// Right
+setState(prevState => prevState + 1);
+
+// Wrong (can lead to bugs)
+setState(state + 1);
+```
+</Warning>
+
+### Two-Way Binding
+
+Bind input values to state for controlled components:
+
+```jsx UserInput.jsx
+export default function UserInput({ onChange, userInput }) {
+  return (
+    <section id="user-input">
+      <div className="input-group">
+        <p>
+          <label>Initial Investment</label>
+          <input
+            type="number"
+            required
+            value={userInput.initialInvestment}
+            onChange={(event) =>
+              onChange('initialInvestment', event.target.value)
+            }
+          />
+        </p>
+        <p>
+          <label>Annual Investment</label>
+          <input
+            type="number"
+            required
+            value={userInput.annualInvestment}
+            onChange={(event) =>
+              onChange('annualInvestment', event.target.value)
+            }
+          />
+        </p>
+      </div>
+    </section>
+  );
+}
+```
+
+<Note>
+Controlled components receive their current value from props and notify changes via callbacks.
+</Note>
+
+### Updating State Immutably
+
+<Warning>
+DON'T mutate state directly:
+
+```jsx
+// Wrong - mutates existing array
+const newBoard = board;
+newBoard[rowIndex][colIndex] = 'X';
+setBoard(newBoard);
+```
+
+DO create a new copy:
+
+```jsx
+// Right - creates new array
+const newBoard = [...board.map(row => [...row])];
+newBoard[rowIndex][colIndex] = 'X';
+setBoard(newBoard);
+```
+</Warning>
+
+### Lifting State Up
+
+Move state to the closest common ancestor when multiple components need access:
+
+```jsx
+function App() {
+  const [userInput, setUserInput] = useState({
+    initialInvestment: 10000,
+    annualInvestment: 1200,
+    expectedReturn: 6,
+    duration: 10,
+  });
+
+  function handleChange(inputIdentifier, newValue) {
+    setUserInput((prevUserInput) => {
+      return {
+        ...prevUserInput,
+        [inputIdentifier]: +newValue,
+      };
+    });
+  }
+
+  return (
+    <>
+      <Header />
+      <UserInput userInput={userInput} onChange={handleChange} />
+      <Results input={userInput} />
+    </>
+  );
+}
+```
+
+<Tip>
+Lift state to the lowest common ancestor that needs to share the data.
+</Tip>
+
+### Avoid Intersecting State
+
+<Warning>
+DON'T store derived values in state:
+
+```jsx
+const [cart, setCart] = useState([]);
+const [totalPrice, setTotalPrice] = useState(0); // Redundant!
+```
+
+DO compute them:
+
+```jsx
+const [cart, setCart] = useState([]);
+const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
+```
+</Warning>
+
+### Prefer Computed Values
+
+Derive values from state instead of storing them:
+
+```jsx
+function GameBoard({ onSelectSquare, turns }) {
+  // Derive game board from turns instead of storing it in state
+  let gameBoard = initialGameBoard.map(array => [...array]);
+
+  for (const turn of turns) {
+    const { square, player } = turn;
+    const { row, col } = square;
+    gameBoard[row][col] = player;
+  }
+
+  return (
+    <ol id="game-board">
+      {gameBoard.map((row, rowIndex) => (
+        <li key={rowIndex}>
+          <ol>
+            {row.map((playerSymbol, colIndex) => (
+              <li key={colIndex}>
+                <button onClick={() => onSelectSquare(rowIndex, colIndex)}>
+                  {playerSymbol}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </li>
+      ))}
+    </ol>
+  );
+}
+```
+
+## Multi-Dimensional Lists
+
+Render nested arrays with nested `map()` calls:
+
+```jsx
+const gameBoard = [
+  [null, 'X', null],
+  ['O', 'X', null],
+  [null, null, 'O'],
+];
+
+<ol id="game-board">
+  {gameBoard.map((row, rowIndex) => (
+    <li key={rowIndex}>
+      <ol>
+        {row.map((playerSymbol, colIndex) => (
+          <li key={colIndex}>
+            <button>{playerSymbol}</button>
+          </li>
+        ))}
+      </ol>
+    </li>
+  ))}
+</ol>
+```
+
+<Note>
+Each level of nesting needs its own `key` prop.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Component Size" icon="scissors">
+    Keep components focused on a single responsibility
+  </Card>
+  
+  <Card title="Immutable Updates" icon="lock">
+    Always create new objects/arrays when updating state
+  </Card>
+  
+  <Card title="Derived State" icon="calculator">
+    Compute values from state instead of storing duplicates
+  </Card>
+  
+  <Card title="Prop Forwarding" icon="arrow-right">
+    Use rest/spread operators for flexible components
+  </Card>
+</CardGroup>
+
+## Common Patterns
+
+<AccordionGroup>
+  <Accordion title="Wrapper Components">
+    ```jsx
+    function Card({ children, className, ...props }) {
+      return (
+        <div className={`card ${className}`} {...props}>
+          {children}
+        </div>
+      );
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Compound Components">
+    ```jsx
+    function Tabs({ children, buttons }) {
+      return (
+        <>
+          <menu>{buttons}</menu>
+          {children}
+        </>
+      );
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Controlled Components">
+    ```jsx
+    function Input({ value, onChange }) {
+      return (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<Card title="Debugging React" icon="bug" href="/core/debugging">
+  Learn debugging techniques and tools for React applications
+</Card>
